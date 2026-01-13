@@ -31,7 +31,8 @@ typedef struct {
 
 // Effectively erase the old frame and bring the current frame's buffer to be drawn on the screen
 TEYE_Buffer TEYE_init(ushort width, ushort height);
-void TEYE_render_frame();
+void TEYE_render_frame_mode_1();
+void TEYE_render_frame_mode_2();
 void TEYE_clear_buffer();
 void TEYE_free();
 

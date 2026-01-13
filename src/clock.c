@@ -1,43 +1,43 @@
 #include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
 
 #include "timer.h"
 #include "teye.h"
 
 
+int running = 1;
+
+void update_frame(TEYE_Buffer buffer);
+
+void signalHandler(int sig) {
+	printf("Aborting\n");
+    
+    running = 0;
+}
+ 
+const ushort w = 400, h = 150;
+
 int main(int args, char** argv) {
 
+    signal(SIGINT, signalHandler);
 
-    ushort w = 300, h = 300;
 
     TEYE_Buffer buffer = TEYE_init(w, h);
 
+    int frame_count = 0;
+    
     long start = currentTimeMillis();
 
-    int frame_count = 10;
 
-    for (int c = 0; c < frame_count; c++) {
+    while (running) {
+        update_frame(buffer);
+
+        TEYE_render_frame_mode_2();
 
 
-        for (ushort i = 0; i < w; i++) {
-            for (ushort j = 0; j < w; j++) {
-
-                int d = i*i + j*j;
-                int s = w*w;
-
-                if (d < s/3) {
-                    buffer.frame_buffer[i][j] = 1;
-                }
-                else if (d < s/2) {
-                    buffer.frame_buffer[i][j] = 2;
-                }
-                else if (d < s) {
-                    buffer.frame_buffer[i][j] = 3;
-                }
-            }
-        }
-
-        TEYE_render_frame();
-
+        //running = 0;
+        frame_count++;
     }
 
     long end = currentTimeMillis();
@@ -51,4 +51,125 @@ int main(int args, char** argv) {
     printf("FPS: %lf\n", fps);
 
     return 0;
+}
+
+void get_time(ushort *hours, ushort *minutes, ushort *seconds) {
+    long time = currentTimeMillis() / 1000;
+
+    *seconds = time % 60;
+
+    time /= 60;
+    *minutes = time % 60;
+
+    time /= 60;
+    *hours = time % 24;
+}
+
+typedef struct {
+    ushort x;
+    ushort y;
+} Point;
+
+/// some useful variables to draw the digits
+const ushort thickness = w / 60;
+const ushort segment_size = w / 10;
+
+Point segments[][2] = { // shape (start and end point) of each segment in a digit
+    { { 0, 0 }, { segment_size, thickness} },     // top top
+    { { 0, 0 }, { thickness, segment_size} },     // top left
+    { { segment_size - thickness, 0 }, 
+     { segment_size, segment_size}
+    },   // top right
+    { { 0, segment_size - (thickness / 2) }, 
+     { segment_size, segment_size + (thickness /2 )}
+    },   // middle
+    { { 0, segment_size  }, 
+     { thickness, segment_size * 2}
+    },   // bottom left
+    { { segment_size - thickness, segment_size }, 
+     { segment_size, segment_size * 2}
+    },   // bottom right
+    { { 0, segment_size * 2 - thickness }, 
+     { segment_size, segment_size * 2}
+    },   // bottom bottom
+};
+
+int digits[][7] = {
+    {1, 1, 1, 0, 1, 1, 1}, // 0
+    {0, 0, 1, 0, 0, 1, 0}, // 1
+    {1, 0, 1, 1, 1, 0, 1}, // 2
+    {1, 0, 1, 1, 0, 1, 1}, // 3
+    {0, 1, 1, 1, 0, 1, 0}, // 4
+    {1, 1, 0, 1, 0, 1, 1}, // 5
+    {1, 1, 0, 1, 1, 1, 1}, // 6
+    {1, 0, 1, 0, 0, 1, 0}, // 7
+    {1, 1, 1, 1, 1, 1, 1}, // 8
+    {1, 1, 1, 1, 0, 1, 1}, // 9
+};
+
+void update_frame(TEYE_Buffer buffer) {
+
+    // We will show a very basic 7-seg type clock in the format hh:mm:ss
+    // the first is to get the time right  
+    
+    ushort hours, minutes, seconds;
+    get_time(&hours, &minutes, &seconds);
+
+    //printf("%2d:%2d:%2d\n", hours, minutes, seconds);
+    
+    TEYE_clear_buffer();
+
+
+    int v_gap = (h - segment_size * 2) / 2;
+    int h_gap = (w - segment_size * 8 - thickness*5) / 2;
+
+    int digit_x = h_gap;
+    int digit_y = v_gap;
+    
+    for (int i = 0; i < 6; i++) {
+
+        int k = 0;
+
+        switch (i) {
+            case 0: k = hours / 10; break;
+            case 1: k = hours % 10; break;
+            case 2: k = minutes / 10; break;
+            case 3: k = minutes % 10; break;
+            case 4: k = seconds / 10; break;
+            case 5: k = seconds % 10; break;
+        }
+
+        int *digit = digits[k];
+        
+        for (int seg = 0; seg < 7; seg++) {
+            if (digit[seg]) {
+                for (int x = segments[seg][0].x; x < segments[seg][1].x; x++) {
+                    for (int y = segments[seg][0].y; y < segments[seg][1].y; y++) {
+                        buffer.frame_buffer[y + digit_y][x + digit_x] = 1;
+                    }
+                }
+            }
+        }
+
+        digit_x += thickness + segment_size;
+        if (i % 2 == 1 && i < 5) {
+            digit_x += segment_size / 2;
+
+            int y0 = v_gap + 2 * segment_size / 3;
+            // add the colons
+            for (int j = 0; j < 2; j++) {
+
+
+                for (int x = digit_x - thickness/2; x < digit_x+thickness/2; x++) {
+                    for (int y = y0 - thickness/2; y < y0 + thickness/2; y++) {
+                        buffer.frame_buffer[y][x] = 1;
+                    }
+                }
+
+                y0 += 2* segment_size / 3;
+            }
+
+            digit_x += segment_size / 2;
+        }
+    }
 }

@@ -7,8 +7,8 @@ if $1 ; then
 	exit 1
 fi
 
-PACKAGE=$1
-SOURCES="src/$PACKAGE.c src/teye.c src/timer.c"
+PACKAGE=teye-$1
+SOURCES="src/$1.c src/teye.c src/timer.c"
 
 echo Compiling sources $SOURCES to binary $PACKAGE...
 gcc $SOURCES -o bin/$PACKAGE

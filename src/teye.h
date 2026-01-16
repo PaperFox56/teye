@@ -33,7 +33,7 @@ typedef struct {
 TEYE_Buffer TEYE_init(ushort width, ushort height);
 void TEYE_render_frame_mode_1();
 void TEYE_render_frame_mode_2();
-void TEYE_clear_buffer();
+void TEYE_clear_buffer(uint8_t color);
 void TEYE_free();
 
 

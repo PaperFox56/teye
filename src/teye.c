@@ -30,6 +30,7 @@ char colors[][100] = {
 #define get_color_from_number(x) colors[x]
 
 #define clamp(x, min, max) (x < min ? min : (x > max ? max: x))
+#define min(a, b) (a < b ? a : b)
 
 TEYE_Buffer teye_instance;
 
@@ -52,14 +53,14 @@ TEYE_Buffer TEYE_init(ushort width, ushort height) {
         teye_instance.frame_buffer[i] = malloc(sizeof(uint8_t) * width);
     }
 
-    TEYE_clear_buffer();
+    TEYE_clear_buffer(0);
 
     return teye_instance;
 }
 
-void TEYE_clear_buffer() {
+void TEYE_clear_buffer(uint8_t color) {
     for (int i = 0; i < teye_instance.height; i++) {
-        memset(teye_instance.frame_buffer[i], 0, teye_instance.width);
+        memset(teye_instance.frame_buffer[i], color, teye_instance.width);
     }
 }
 
@@ -83,7 +84,7 @@ void TEYE_render_frame_mode_2() {
 
     double screen_to_buffer = (double)teye_instance.width / (double)cols;
     // calculate the renderered image's size
-    rows = teye_instance.height / screen_to_buffer;
+    rows = min(rows*2, teye_instance.height / screen_to_buffer);
 
 
     // Loop over the frame buffer, two rows at a time (since we render 2 rows per character)

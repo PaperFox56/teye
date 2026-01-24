@@ -64,9 +64,6 @@ void TEYE_clear_buffer(uint8_t color) {
     }
 }
 
-
-
-
 // Function to render the frame buffer, try to fit the buffer's size to the screen's
 void TEYE_render_frame_mode_2() {
     // get the screen size
@@ -75,7 +72,7 @@ void TEYE_render_frame_mode_2() {
 
     ushort rows = w.ws_row, cols = w.ws_col;
 
-    move_cursor_top_left(); fflush(stdout); // flush printf buffer if needed
+    clear_screen(); fflush(stdout); // flush printf buffer if needed
 
     // Buffer for printing
     size_t buf_size = rows * cols * 70;

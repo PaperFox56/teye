@@ -43,7 +43,8 @@ My attempt at creating a terminal based widget suite — a small collection of C
 
 Replace `clock` with the name of another example source file (if added later) — the helper script expects `src/<name>.c` to exist and will link it with `src/teye.c` and `src/timer.c`.
 
-## Using the TEYE API (example)\nHere is a minimal example showing how the library is used (based on the existing code):
+## Using the TEYE API (example)
+Here is a minimal example showing how the library is used (based on the existing code):
 
 ```c
 #include "teye.h"

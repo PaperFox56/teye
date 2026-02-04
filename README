@@ -7,7 +7,6 @@ My attempt at creating a terminal based widget suite — a small collection of C
 - src/teye.c, src/teye.h — core framebuffer and terminal render code (TEYE_* API)
 - src/timer.c, src/timer.h — small cross-platform timing helpers
 - src/clock.c — example program that draws a 7-segment-style clock into the TEYE buffer and renders it
-- build.sh — small build helper script that compiles a named example together with the library
 - bin/ — output directory for compiled binaries (not present in repository; created at build time)
 
 ## Features
@@ -25,23 +24,24 @@ My attempt at creating a terminal based widget suite — a small collection of C
 
 1. Create the bin directory (if it does not exist):
 
-   mkdir -p bin
+   ```mkdir -p bin```
 
-2. Option A — use the provided helper script (make it executable first):
+2. Use Make
 
-   chmod +x build.sh
-   ./build.sh clock r
+   ```make```
 
-   This should compile `src/clock.c` together with `src/teye.c` and `src/timer.c` into `bin/teye-clock` and run it.
+will build the library and put the file `teye.a` in the `bin` folder. You can link it normally 
+with any of your projects.
 
-   Note: the helper script takes the example name as the first argument (e.g. `clock`) and an optional second argument `r` to run the produced binary. If you see an error from the script, use the manual compile command below.
+   ```make includes```
 
-3. Option B — compile manually with gcc:
+move the library headers in an `include` directory.
 
-   gcc src/clock.c src/teye.c src/timer.c -o bin/teye-clock
-   ./bin/teye-clock
+   ```make clock```
 
-Replace `clock` with the name of another example source file (if added later) — the helper script expects `src/<name>.c` to exist and will link it with `src/teye.c` and `src/timer.c`.
+will build the included example.
+
+
 
 ## Using the TEYE API (example)\nHere is a minimal example showing how the library is used (based on the existing code):
 

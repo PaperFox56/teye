@@ -17,7 +17,7 @@ void signalHandler(int sig) {
 
 const ushort w = 400, h = 150;
 
-int main(int args, char **argv) {
+int main() {
 
   signal(SIGINT, signalHandler);
 
@@ -55,8 +55,8 @@ int main(int args, char **argv) {
 
   TEYE_free();
 
-  printf("Time: %lf\n", time_elapsed);
-  printf("FPS: %lf\n", fps);
+  //printf("Time: %lf\n", time_elapsed);
+  //printf("FPS: %lf\n", fps);
 
   return 0;
 }

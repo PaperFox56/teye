@@ -25,7 +25,7 @@ int main() {
 
   int frame_count = 0;
 
-  long frame_duration = 1000 / 2;
+  long frame_duration = 1000 / 10;
   long start = currentTimeMillis();
   long prev_time = start;
 
@@ -44,19 +44,10 @@ int main() {
 
     TEYE_render_frame_mode_2();
 
-    // running = 0;
     frame_count++;
   }
 
-  long end = currentTimeMillis();
-
-  double time_elapsed = (end - start) / 1000.;
-  double fps = frame_count / time_elapsed;
-
   TEYE_free();
-
-  //printf("Time: %lf\n", time_elapsed);
-  //printf("FPS: %lf\n", fps);
 
   return 0;
 }

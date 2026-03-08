@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "teye.h"
+#include "buffer/char_buffer.h"
 
 // ANSI escape codes for colors
 #define ANSI_COLOR_RESET   "\x1b[0m"
@@ -32,9 +33,11 @@ char colors[][100] = {
 #define clamp(x, min, max) (x < min ? min : (x > max ? max: x))
 #define min(a, b) (a < b ? a : b)
 
-TEYE_Buffer teye_instance;
+static TEYE_Buffer teye_instance;
 
-// Cause I'm lazy
+// Used to store the framebuffer before sending to the terminal
+static struct CharBuffer char_buffer;
+
 #define pixelcount(lcd) ((lcd).width * (lcd).height)
 
 // Function to initialize LCD
@@ -54,6 +57,8 @@ TEYE_Buffer TEYE_init(ushort width, ushort height) {
     }
 
     TEYE_clear_buffer(0);
+    if (CharBuffer_init(&char_buffer) < 0)
+        panic("Couldn't initialize a framebuffer");
 
     return teye_instance;
 }
@@ -73,11 +78,6 @@ void TEYE_render_frame_mode_2() {
     ushort rows = w.ws_row, cols = w.ws_col;
 
     clear_screen(); fflush(stdout); // flush printf buffer if needed
-
-    // Buffer for printing
-    size_t buf_size = rows * cols * 70;
-    char *string_buffer = malloc(buf_size); 
-    int offset = 0;
 
     double screen_to_buffer = (double)teye_instance.width / (double)cols;
     // calculate the renderered image's size
@@ -100,36 +100,37 @@ void TEYE_render_frame_mode_2() {
 
             // Based on the character_value, pick the color
             if (upper_half == lower_half) {
-                offset += snprintf(
-                    &string_buffer[offset],
-                    buf_size - offset,
-                        ANSI_COLOR_RESET BACKGROUND "%s ",
-                        get_color_from_number(upper_half)
-                );
+                char* color = get_color_from_number(upper_half);
+                CharBuffer_append_text(&char_buffer, ANSI_COLOR_RESET BACKGROUND, strlen(ANSI_COLOR_RESET BACKGROUND));
+                CharBuffer_append_text(&char_buffer, color, strlen(color));
+                CharBuffer_append_text(&char_buffer, " ", 1);
             } else {
-                offset += snprintf(
-                    &string_buffer[offset],
-                    buf_size - offset,
-                    FORGROUND "%s" BACKGROUND "%s▀",
-                    get_color_from_number(upper_half), get_color_from_number(lower_half)
-                );
+                char* color1 = get_color_from_number(upper_half);
+                char* color2 = get_color_from_number(lower_half);
+                CharBuffer_append_text(&char_buffer, FORGROUND, strlen(FORGROUND));
+                CharBuffer_append_text(&char_buffer, color1, strlen(color1));
+                CharBuffer_append_text(&char_buffer, BACKGROUND, strlen(BACKGROUND));
+                CharBuffer_append_text(&char_buffer, color2, strlen(color2));
+                CharBuffer_append_text(&char_buffer, "▀", 4);
             }
         }        
         
         // End line with color reset and newline
-        offset += snprintf(&string_buffer[offset], buf_size - offset,
-                           ANSI_COLOR_RESET "\n");
+        CharBuffer_append_text(&char_buffer, ANSI_COLOR_RESET "\n", strlen(ANSI_COLOR_RESET)+1);
+
 
     }
-    write(STDOUT_FILENO, string_buffer, offset);
+    write(STDOUT_FILENO, char_buffer.buf, char_buffer.len);
 
 
     // Final reset to ensure terminal colors are clean
     write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
 
-    free(string_buffer);
-
     //printf("%d %d %lf\n", rows, cols, screen_to_buffer);
+
+    // Cleans the buffer to make it usable for the next iteration
+    char_buffer.len = 0;
+    char_buffer.buf[0] = '\0';
 }
 
 // Function to render the frame buffer, represent two pixels with a single character
@@ -190,4 +191,14 @@ void TEYE_free() {
         free(teye_instance.frame_buffer[i]);
     }
     free(teye_instance.frame_buffer);
+
+    CharBuffer_free(&char_buffer);
+}
+
+
+void panic(const char *s) {
+  clear_screen();
+
+  perror(s);
+  exit(1);
 }

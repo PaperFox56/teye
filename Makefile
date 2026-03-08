@@ -3,29 +3,52 @@ This makefile require GNU Make
 endif
 
 CC=gcc
-CFLAGS= -Wall -Wextra -pedantic -fPIC
+LFLAGS= -Wall -Wextra -pedantic -fPIC
+CFLAGS= -Wall -Wextra -pedantic
 
-SOURCES=src
 HEADERS=
 
-LIBRARY=teye.a
-LOBJS=bin/teye.o bin/timer.o
+LIBRARY=libteye.so
+LOBJS=lib/teye.o lib/timer.o lib/buffer/char_buffer.o
 HEADERS=src/teye.h src/timer.h
 
-$(LIBRARY): $(LOBJS)
-	$(CC) -shared $(LOBJS) -o bin/$(LIBRARY) $(CFLAGS)
+TARGETS=clock
+BINARIES=$(patsubst %,bin/teye-%,$(TARGETS))
 
-clock: $(LIBRARY) bin/clock.o
-	$(CC) bin/clock.o -o bin/teye-clock $(CFLAGS) -lm bin/teye.a
+all: $(TARGETS) teye
 
-bin/%.o: ./src/%.c
+teye: $(LOBJS) $(HEADERS)
+	$(CC) -shared $(LOBJS) -o lib/$(LIBRARY) $(LFLAGS)
+
+clock: bin/clock.o
+	$(CC) bin/clock.o -o bin/teye-clock $(CFLAGS) -l teye
+
+lib/%.o: ./src/%.c	
+	@mkdir -p $(dir $@)
+	$(CC) -c $< -o $@ $(LFLAGS)
+bin/%.o: ./src/%.c	
+	@mkdir -p $(dir $@)
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-%.o: ./bin/%.o
+#%.o: ./bin/%.o
+
+
+# Installation
 
 includes: $(HEADERS)
 	mkdir -p includes
 	cp $(HEADERS) includes/
 
+install-lib:
+	mkdir -p /usr/local/include/teye
+	cp $(HEADERS) /usr/local/include/teye/
+	cp lib/$(LIBRARY) /usr/lib/
+
+install-binaries:
+	cp -t /usr/local/bin $(BINARIES)
+
+install: install-lib install-binaries
+
 clean:
-	rm bin/*
+	rm -r bin
+	rm -r lib

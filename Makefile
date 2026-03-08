@@ -1,54 +1,49 @@
+# Ensure GNU Make
 ifneq (,)
-This makefile require GNU Make
+This makefile requires GNU Make
 endif
 
-CC=gcc
-LFLAGS= -Wall -Wextra -pedantic -fPIC
-CFLAGS= -Wall -Wextra -pedantic
+CC      := gcc
+CFLAGS  := -Wall -Wextra -pedantic -fPIC -O2 -Iinclude
+LFLAGS  := -shared
 
-HEADERS=
+PREFIX  ?= /usr/local
+LIBDIR  := $(PREFIX)/lib
+INCDIR  := $(PREFIX)/include/teye
 
-LIBRARY=libteye.so
-LOBJS=lib/teye.o lib/timer.o lib/buffer/char_buffer.o
-HEADERS=src/teye.h src/timer.h
+LIBRARY := libteye.so
+SRCS    := $(wildcard src/*.c)
+LOBJS   := $(SRCS:src/%.c=bin/%.o)
+HEADERS := $(wildcard include/teye/*.h)
 
-TARGETS=clock
-BINARIES=$(patsubst %,bin/teye-%,$(TARGETS))
+.PHONY: all teye install clean
 
-all: $(TARGETS) teye
+all: teye
 
-teye: $(LOBJS) $(HEADERS)
-	$(CC) -shared $(LOBJS) -o lib/$(LIBRARY) $(LFLAGS)
+# Build the shared library
+teye: $(LOBJS)
+	@mkdir -p lib
+	$(CC) $(LFLAGS) -o lib/$(LIBRARY) $(LOBJS)
 
-clock: bin/clock.o
-	$(CC) bin/clock.o -o bin/teye-clock $(CFLAGS) -l teye
-
-lib/%.o: ./src/%.c	
-	@mkdir -p $(dir $@)
-	$(CC) -c $< -o $@ $(LFLAGS)
-bin/%.o: ./src/%.c	
-	@mkdir -p $(dir $@)
+# Pattern rule for object files
+bin/%.o: src/%.c
+	@mkdir -p bin
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-#%.o: ./bin/%.o
+define install_rule
+	install -Dm644 $(1) $(DESTDIR)$(INCDIR)/$(notdir $(1))
+endef
 
-
-# Installation
-
-includes: $(HEADERS)
-	mkdir -p includes
-	cp $(HEADERS) includes/
-
-install-lib:
-	mkdir -p /usr/local/include/teye
-	cp $(HEADERS) /usr/local/include/teye/
-	cp lib/$(LIBRARY) /usr/lib/
-
-install-binaries:
-	cp -t /usr/local/bin $(BINARIES)
-
-install: install-lib install-binaries
+install: teye
+	@echo "Installing to $(PREFIX)..."
+	# 1. Install the library
+	install -Dm755 lib/$(LIBRARY) $(DESTDIR)$(LIBDIR)/$(LIBRARY)
+	
+	# 2. Install headers using Make's native foreach
+	$(foreach header,$(HEADERS),$(call install_rule,$(header)))
+	
+	@echo "Updating linker cache..."
+	-ldconfig $(LIBDIR)
 
 clean:
-	rm -r bin
-	rm -r lib
+	rm -rf bin lib

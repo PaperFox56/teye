@@ -6,8 +6,8 @@
 #include <sys/ioctl.h>  // for terminal size
 #include <stdio.h>
 
-#include "teye.h"
-#include "buffer/char_buffer.h"
+#include <teye/teye.h>
+#include "char_buffer.h"
 
 // ANSI escape codes for colors
 #define ANSI_COLOR_RESET   "\x1b[0m"

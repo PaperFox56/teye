@@ -1,19 +1,19 @@
-# termwidgetsuite
+# Teye
 
-My attempt at creating a terminal based widget suite — a small collection of C source files for drawing monochrome bitmap-style output in a terminal and a few example programs (clock, etc.). The project provides a minimal framebuffer-like API (teye) and utilities to render it using ANSI colors.
+I have recently been working on many small project where I needed to draw bitmap art in the terminal. I quickly realized that most of the fonctionality I implemented in those projects could be incorporated in a single library that could be maintained easily.
+Here it is. I hope this can be useful to someone else. Feel free to use the code in your own project and if you encounter any issues, either open an issue in the corresponding session or change the code to your heart content and  open a PR so that everyone can benefit.
+
+## Licence
+See LICENCE for more information.
 
 ## Contents
 
-- src/teye.c, src/teye.h — core framebuffer and terminal render code (TEYE_* API)
-- src/timer.c, src/timer.h — small cross-platform timing helpers
-- src/clock.c — example program that draws a 7-segment-style clock into the TEYE buffer and renders it
-- bin/ — output directory for compiled binaries (not present in repository; created at build time)
+- src/teye.c, include/teye.h - core framebuffer and terminal render code (TEYE_* API)
 
 ## Features
 
 - Minimal framebuffer API for terminal rendering (TEYE_init, TEYE_render_frame_mode_1/2, TEYE_clear_buffer, TEYE_free)
 - Two rendering modes (character-based color blocks and foreground/background blended characters)
-- Example: a terminal 7-segment clock (src/clock.c)
 
 ## Requirements
 
@@ -22,24 +22,14 @@ My attempt at creating a terminal based widget suite — a small collection of C
 
 ## Build and run
 
-1. Create the bin directory (if it does not exist):
+Use Make
 
-   ```mkdir -p bin```
+   ```make
+      sudo make install
+   ```
 
-2. Use Make
-
-   ```make```
-
-will build the library and put the file `teye.a` in the `bin` folder. You can link it normally 
+will build the library and install it in /usr/local/ along with the headers
 with any of your projects.
-
-   ```make includes```
-
-move the library headers in an `include` directory.
-
-   ```make clock```
-
-will build the included example.
 
 
 
@@ -47,7 +37,7 @@ will build the included example.
 Here is a minimal example showing how the library is used (based on the existing code):
 
 ```c
-#include "teye.h"
+#include <teye/teye.h>
 
 int main(void) {
     TEYE_Buffer buf = TEYE_init(160, 60); // create a buffer

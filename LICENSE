@@ -1,6 +1,3 @@
-/**
- * teye.h
-
 MIT License
 
 Copyright (c) 2026 PaperFox56
@@ -22,34 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
- */
-
-#ifndef TEYE_H
-#define TEYE_H
-
-#include <stdint.h>
-
-typedef unsigned short ushort;
-
-typedef struct {
-
-    ushort width;
-    ushort height;
-    uint8_t **frame_buffer;
-
-} TEYE_Buffer;
-
-
-// Effectively erase the old frame and bring the current frame's buffer to be drawn on the screen
-TEYE_Buffer TEYE_init(ushort width, ushort height);
-void TEYE_render_frame_mode_1();
-void TEYE_render_frame_mode_2();
-void TEYE_clear_buffer(uint8_t color);
-void TEYE_free();
-
-// Prints an error message and quit the program
-void panic(const char *s);
-
-#endif

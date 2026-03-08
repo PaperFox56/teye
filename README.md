@@ -43,7 +43,8 @@ will build the included example.
 
 
 
-## Using the TEYE API (example)\nHere is a minimal example showing how the library is used (based on the existing code):
+## Using the TEYE API (example)
+Here is a minimal example showing how the library is used (based on the existing code):
 
 ```c
 #include "teye.h"

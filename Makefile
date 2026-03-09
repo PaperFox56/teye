@@ -5,7 +5,7 @@ endif
 
 CC      := gcc
 CFLAGS  := -Wall -Wextra -pedantic -fPIC -O2 -Iinclude
-LFLAGS  := -shared
+LFLAGS  := -shared -lncurses
 
 PREFIX  ?= /usr/local
 LIBDIR  := $(PREFIX)/lib

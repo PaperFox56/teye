@@ -3,6 +3,12 @@
 I have recently been working on many small project where I needed to draw bitmap art in the terminal. I quickly realized that most of the fonctionality I implemented in those projects could be incorporated in a single library that could be maintained easily.
 Here it is. I hope this can be useful to someone else. Feel free to use the code in your own project and if you encounter any issues, either open an issue in the corresponding session or change the code to your heart content and  open a PR so that everyone can benefit.
 
+## Version
+
+0.2.0
+
+Support for ncurses was added to provide more flec=xim=bility and efficiency
+
 ## Licence
 See LICENCE for more information.
 

@@ -29,15 +29,30 @@ SOFTWARE.
 #ifndef TEYE_H
 #define TEYE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
+
+#define TEYE_VERSION_MAJOR 0
+#define TEYE_VERSION_MINOR 2
+
+#define set_buffer_pixel(buffer, x, y, color) buffer.frame_buffer[x + buffer.width*y] = color
+#define get_buffer_pixel(buffer, x, y) buffer.frame_buffer[x + buffer.width*y]
 
 typedef unsigned short ushort;
 
+/**
+Please note that this buffer is managed internally by the library.
+Never call `free` on it.
+*/
 typedef struct {
 
     ushort width;
     ushort height;
-    uint8_t **frame_buffer;
+    // This buffer is written into by the user program
+    uint8_t *frame_buffer; 
 
 } TEYE_Buffer;
 
@@ -45,11 +60,18 @@ typedef struct {
 // Effectively erase the old frame and bring the current frame's buffer to be drawn on the screen
 TEYE_Buffer TEYE_init(ushort width, ushort height);
 void TEYE_render_frame_mode_1();
-void TEYE_render_frame_mode_2();
+
+// Function to render the frame buffer, tries to fit the buffer's size to the
+// screen's
+// As buffer swapping is used, the function returns a pointer to the new buffer
+TEYE_Buffer TEYE_render_frame_mode_2();
 void TEYE_clear_buffer(uint8_t color);
 void TEYE_free();
 
 // Prints an error message and quit the program
 void panic(const char *s);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

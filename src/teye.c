@@ -45,7 +45,7 @@ SOFTWARE.
 #define FORGROUND "\033[38;5;"
 #define BACKGROUND "\033[48;5;"
 
-#define pixelcount(buffer) ((buffer).width * (buffer).height)
+#define pixelcount(buffer) (buffer.width * buffer.height)
 
 char colors[][100] = {
     "0m",   // void
@@ -69,7 +69,6 @@ static uint8_t *back_frame_buffer;
 // Stores the frame's bytes before sending to the terminal
 static struct CharBuffer char_buffer;
 
-
 // Function to initialize LCD
 TEYE_Buffer TEYE_init(ushort width, ushort height) {
   hide_cursor();
@@ -92,17 +91,33 @@ TEYE_Buffer TEYE_init(ushort width, ushort height) {
   return teye_instance;
 }
 
-
 void TEYE_clear_buffer(uint8_t color) {
   memset(teye_instance.frame_buffer, color, pixelcount(teye_instance));
 }
 
 TEYE_Buffer TEYE_render_frame_mode_2() {
+
+  // As we use double-buffering, we need to make sure that the characters are
+  // not overwritten by the terminal changing size
+  static ushort prev_rows = 0;
+  static ushort prev_cols = 0;
+
   // get the screen size
   struct winsize w;
   ioctl(0, TIOCGWINSZ, &w);
 
   ushort rows = w.ws_row, cols = w.ws_col;
+
+  int size_changed = (rows == prev_rows && cols == prev_cols) ? 0 : 1;
+
+  if (size_changed) {
+    // the back buffer is now misleading, clean it
+    memset(back_frame_buffer, 0, pixelcount(teye_instance));
+  }
+
+  prev_cols = cols;
+  prev_rows = rows;
+  
 
   move_cursor_top_left();
   fflush(stdout); // flush printf buffer if needed
@@ -128,12 +143,12 @@ TEYE_Buffer TEYE_render_frame_mode_2() {
       uint8_t prev_upper_half = back_frame_buffer[x + teye_instance.width * y1];
       uint8_t prev_lower_half = back_frame_buffer[x + teye_instance.width * y2];
 
-      if (prev_upper_half == upper_half && prev_lower_half == lower_half) {
-        // nochange, move forward and print the next pixel
+      if (prev_upper_half == upper_half && prev_lower_half == lower_half && !size_changed) {
+        // no change, move forward and print the next pixel
         char buf[32];
-        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", i/2 + 1, j + 2);
-        //CharBuffer_append_text(&char_buffer, buf, strlen(buf));
-        //continue;
+        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", i / 2 + 1, j + 2);
+        CharBuffer_append_text(&char_buffer, buf, strlen(buf));
+        continue;
       }
 
       // Based on the character_value, pick the color

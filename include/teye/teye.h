@@ -38,8 +38,16 @@ extern "C" {
 #define TEYE_VERSION_MAJOR 0
 #define TEYE_VERSION_MINOR 2
 
-#define set_buffer_pixel(buffer, x, y, color) buffer.frame_buffer[x + buffer.width*y] = color
-#define get_buffer_pixel(buffer, x, y) buffer.frame_buffer[x + buffer.width*y]
+#define set_buffer_pixel(buf, x, y, color) buf.buffer[x + buf.width*y] = color
+#define get_buffer_pixel(buf, x, y) buffer.buf[x + buf.width*y]
+
+// Drawing modes
+typedef enum {
+  Sample,
+  FitWidth,
+  FitHeight,
+  Stretch
+} DrawingMode;
 
 typedef unsigned short ushort;
 
@@ -52,20 +60,30 @@ typedef struct {
     ushort width;
     ushort height;
     // This buffer is written into by the user program
-    uint8_t *frame_buffer; 
+    uint8_t *buffer; 
 
 } TEYE_Buffer;
 
 
 // Effectively erase the old frame and bring the current frame's buffer to be drawn on the screen
-TEYE_Buffer TEYE_init(ushort width, ushort height);
-void TEYE_render_frame_mode_1();
+void TEYE_init();
+
+/*
+Allocate a buffer with the given size.
+If the buffer is already allocated, it reallocates it to fit the new size
+ */
+int TEYE_allocate_buffer(TEYE_Buffer* buffer, int width, int height);
+void TEYE_free_buffer(TEYE_Buffer* buffer);
+
+/* Draw a bitmap from the given buffer to the internal one
+*/
+void TEYE_blit(const TEYE_Buffer buffer, DrawingMode mode, int x, int y, float scale_x, float scale_y);
 
 // Function to render the frame buffer, tries to fit the buffer's size to the
 // screen's
 // As buffer swapping is used, the function returns a pointer to the new buffer
-TEYE_Buffer TEYE_render_frame_mode_2();
-void TEYE_clear_buffer(uint8_t color);
+void TEYE_render_frame();
+void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
 void TEYE_free();
 
 // Prints an error message and quit the program

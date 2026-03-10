@@ -5,6 +5,7 @@ endif
 
 CC      := gcc
 CFLAGS  := -Wall -Wextra -pedantic -fPIC -O2 -Iinclude
+CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L
 LFLAGS  := -shared
 
 PREFIX  ?= /usr/local

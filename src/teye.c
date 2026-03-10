@@ -25,29 +25,44 @@ SOFTWARE.
 
  */
 
+/** */
+
 #include <locale.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h> // for terminal size
-#include <unistd.h>    // for usleep
 
 #include "char_buffer.h"
 #include <teye/teye.h>
+#include <unistd.h>
+
+/****************
+ macros
+ ****************/
 
 // ANSI escape codes for colors
 #define ANSI_COLOR_RESET "\x1b[0m"
-#define clear_screen() printf("\033[J")
-#define move_cursor_top_left() printf("\033[H")
-#define hide_cursor() printf("\033[?25l")
-#define show_cursor() printf("\033[?25h")
+#define clear_screen() printf("\x1b[J")
+#define move_cursor_top_left() printf("\x1b[H")
+#define hide_cursor() printf("\x1b[?25l")
+#define show_cursor() printf("\x1b[?25h")
 
-#define FORGROUND "\033[38;5;"
-#define BACKGROUND "\033[48;5;"
+#define FORGROUND "\x1b[38;5;"
+#define BACKGROUND "\x1b[48;5;"
 
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
-char colors[][100] = {
+#define get_color_from_number(x) colors[x]
+
+#define clamp(x, min, max) (x < min ? min : (x > max ? max : x))
+#define min(a, b) (a < b ? a : b)
+
+/****************
+ Global variables
+ ****************/
+static char colors[][32] = {
     "0m",   // void
     "231m", // White
     "188m", // Light gray
@@ -56,193 +71,316 @@ char colors[][100] = {
     "87m",
 };
 
-#define get_color_from_number(x) colors[x]
+// tracks whether the terminal size changed since the last frame
+static volatile sig_atomic_t screen_resized = 0;
 
-#define clamp(x, min, max) (x < min ? min : (x > max ? max : x))
-#define min(a, b) (a < b ? a : b)
-
-static TEYE_Buffer teye_instance;
+static TEYE_Buffer front_framebuffer;
 
 // This buffer is swaped with the main one after each frame.
-static uint8_t *back_frame_buffer;
+static TEYE_Buffer back_framebuffer;
 
 // Stores the frame's bytes before sending to the terminal
 static struct CharBuffer char_buffer;
 
-// Function to initialize LCD
-TEYE_Buffer TEYE_init(ushort width, ushort height) {
-  hide_cursor();
-  setlocale(LC_ALL, "");
+/****************
+ Functions
+*****************/
 
-  printf("\033[?1049h"); // Switch to alternate buffer
+static void signalHandler() {
+  screen_resized = 1;
 
-  // Allocate the buffer
-  teye_instance.width = width;
-  teye_instance.height = height;
-  teye_instance.frame_buffer =
-      malloc(sizeof(uint8_t *) * pixelcount(teye_instance));
-  back_frame_buffer = malloc(sizeof(uint8_t *) * pixelcount(teye_instance));
-  memset(back_frame_buffer, 0, pixelcount(teye_instance));
-
-  TEYE_clear_buffer(0);
-  if (CharBuffer_init(&char_buffer) < 0)
-    panic("Couldn't initialize a character buffer");
-
-  return teye_instance;
+  char buf[32] = "screen resized\n";
+  write(STDERR_FILENO, buf, strlen(buf));
 }
 
-void TEYE_clear_buffer(uint8_t color) {
-  memset(teye_instance.frame_buffer, color, pixelcount(teye_instance));
+/**
+ * Fast integer to string conversion for terminal coordinates.
+ */
+static void CharBuffer_append_int(struct CharBuffer *cb, int n) {
+  if (n == 0) {
+    CharBuffer_append_text(cb, "0", 1);
+    return;
+  }
+
+  char tmp[12]; // Enough for a 32-bit int
+  int i = 10;
+  tmp[11] = '\0';
+
+  while (n > 0 && i >= 0) {
+    tmp[i--] = (n % 10) + '0';
+    n /= 10;
+  }
+
+  // i+1 is the start of our string
+  CharBuffer_append_text(cb, &tmp[i + 1], 10 - i);
 }
 
-TEYE_Buffer TEYE_render_frame_mode_2() {
+/**
+ * Fast Cursor Move: "\x1b[row;colH"
+ */
+static void CharBuffer_append_cursor_move(struct CharBuffer *cb, int row,
+                                          int col) {
+  CharBuffer_append_text(cb, "\x1b[", 2);
+  CharBuffer_append_int(cb, row);
+  CharBuffer_append_text(cb, ";", 1);
+  CharBuffer_append_int(cb, col);
+  CharBuffer_append_text(cb, "H", 1);
+}
 
-  // As we use double-buffering, we need to make sure that the characters are
-  // not overwritten by the terminal changing size
-  static ushort prev_rows = 0;
-  static ushort prev_cols = 0;
+static void reset_frame_buffers() {
 
   // get the screen size
   struct winsize w;
   ioctl(0, TIOCGWINSZ, &w);
 
-  ushort rows = w.ws_row, cols = w.ws_col;
+  int rows = w.ws_row * 2, cols = w.ws_col;
 
-  int size_changed = (rows == prev_rows && cols == prev_cols) ? 0 : 1;
+  // Allocate the framebuffers
+  if (TEYE_allocate_buffer(&front_framebuffer, cols, rows) < 0 ||
+      TEYE_allocate_buffer(&back_framebuffer, cols, rows) < 0)
+    panic("teye: Failed to reallocate frame buffers");
 
-  if (size_changed) {
-    // the back buffer is now misleading, clean it
-    memset(back_frame_buffer, 0, pixelcount(teye_instance));
-  }
-
-  prev_cols = cols;
-  prev_rows = rows;
-  
-
-  move_cursor_top_left();
-  fflush(stdout); // flush printf buffer if needed
-
-  double screen_to_buffer = (double)teye_instance.width / (double)cols;
-  // calculate the renderered image's size
-  rows = min(rows * 2, teye_instance.height / screen_to_buffer);
-
-  // Loop over the frame buffer, two rows at a time (since we render 2 rows per
-  // character)
-  for (ushort i = 0; i < rows - 1; i += 2) {
-
-    for (ushort j = 0; j < cols; j++) {
-      // get into the frame buffer's coordinate
-      ushort x = clamp(j * screen_to_buffer, 0, teye_instance.width - 1),
-             y1 = clamp(i * screen_to_buffer, 0, teye_instance.height - 1),
-             y2 =
-                 clamp((i + 1) * screen_to_buffer, 0, teye_instance.height - 1);
-
-      // Combine two rows to form one character
-      uint8_t upper_half = get_buffer_pixel(teye_instance, x, y1);
-      uint8_t lower_half = get_buffer_pixel(teye_instance, x, y2);
-      uint8_t prev_upper_half = back_frame_buffer[x + teye_instance.width * y1];
-      uint8_t prev_lower_half = back_frame_buffer[x + teye_instance.width * y2];
-
-      if (prev_upper_half == upper_half && prev_lower_half == lower_half && !size_changed) {
-        // no change, move forward and print the next pixel
-        char buf[32];
-        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", i / 2 + 1, j + 2);
-        CharBuffer_append_text(&char_buffer, buf, strlen(buf));
-        continue;
-      }
-
-      // Based on the character_value, pick the color
-      if (upper_half == lower_half) {
-        char *color = get_color_from_number(upper_half);
-        CharBuffer_append_text(&char_buffer, ANSI_COLOR_RESET BACKGROUND,
-                               strlen(ANSI_COLOR_RESET BACKGROUND));
-        CharBuffer_append_text(&char_buffer, color, strlen(color));
-        CharBuffer_append_text(&char_buffer, " ", 1);
-      } else {
-        char *color1 = get_color_from_number(upper_half);
-        char *color2 = get_color_from_number(lower_half);
-        CharBuffer_append_text(&char_buffer, FORGROUND, strlen(FORGROUND));
-        CharBuffer_append_text(&char_buffer, color1, strlen(color1));
-        CharBuffer_append_text(&char_buffer, BACKGROUND, strlen(BACKGROUND));
-        CharBuffer_append_text(&char_buffer, color2, strlen(color2));
-        CharBuffer_append_text(&char_buffer, "▀", 4);
-      }
-    }
-
-    // End line with color reset and newline
-    CharBuffer_append_text(&char_buffer, ANSI_COLOR_RESET "\n",
-                           strlen(ANSI_COLOR_RESET) + 1);
-  }
-  write(STDOUT_FILENO, char_buffer.buf, char_buffer.len);
-
-  clear_screen();
-
-  // Swaps the back and front buffers
-  uint8_t *temp = back_frame_buffer;
-  back_frame_buffer = teye_instance.frame_buffer;
-  teye_instance.frame_buffer = temp;
-
-  // Cleans the haracter buffer to make it usable for the next iteration
-  char_buffer.len = 0;
-  char_buffer.buf[0] = '\0';
-
-  return teye_instance;
+  TEYE_clear_buffer(front_framebuffer, 0);
+  TEYE_clear_buffer(back_framebuffer, 0);
 }
 
-// Function to render the frame buffer, represent two pixels with a single
-// character
-/*void TEYE_render_frame_mode_1() {
-  move_cursor_top_left();
-  fflush(stdout); // flush printf buffer if needed
+int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height) {
 
-  // Buffer for printing
-  size_t buf_size = pixelcount(teye_instance) * 35;
-  char *string_buffer = malloc(buf_size);
-  int offset = 0;
+  if (width <= 0 || height <= 0) {
+    const char *error_text =
+        "Can't create a buffer with non-positive dimensions";
+    write(STDERR_FILENO, error_text, strlen(error_text));
+    return -1;
+  }
+
+  uint8_t *buf;
+
+  if (buffer->buffer == NULL)
+    buf = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
+  else
+    buf = (uint8_t *)realloc(buffer->buffer, sizeof(uint8_t) * width * height);
+
+  if (buf == NULL)
+    return -1;
+
+  buffer->width = width;
+  buffer->height = height;
+  buffer->buffer = buf;
+
+  return 0;
+}
+
+void TEYE_free_buffer(TEYE_Buffer *buffer) {
+  free(buffer->buffer);
+  buffer->buffer = NULL;
+}
+
+void TEYE_init() {
+
+  printf("\x1b[?1049h"); // Switch to alternate buffer
+
+  hide_cursor();
+  setlocale(LC_ALL, "");
+
+  reset_frame_buffers();
+
+  if (CharBuffer_init(&char_buffer) < 0)
+    panic("teye: Couldn't initialize a character buffer");
+}
+
+void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color) {
+  memset(buffer.buffer, color, pixelcount(buffer));
+}
+
+void TEYE_blit(TEYE_Buffer src, DrawingMode mode, int dest_x, int dest_y,
+               float scale_x, float scale_y) {
+
+  if (mode == FitWidth) {
+    scale_x = (float)front_framebuffer.width / src.width;
+    scale_y = scale_x;
+  } else if (mode == FitHeight) {
+    scale_y = (float)front_framebuffer.height / src.height;
+    scale_x = scale_y;
+  } else if (mode == Stretch) {
+    scale_x = (float)front_framebuffer.width / src.width;
+    scale_y = (float)front_framebuffer.height / src.height;
+  }
+
+  // Calculate the target dimensions in the internal buffer
+  int target_w = (int)(src.width * scale_x);
+  int target_h = (int)(src.height * scale_y);
+
+  // Iterate over the destination buffer
+  for (int dy = 0; dy < target_h; dy++) {
+    // Boundary check for y
+    int actual_y = dest_y + dy;
+    if (actual_y < 0 || actual_y >= front_framebuffer.height)
+      continue;
+
+    // Pre-calculate the source Y coordinate
+    int sy = (int)(dy / scale_y);
+    // Safety clamp for source Y
+    if (sy >= src.height)
+      sy = src.height - 1;
+
+    int src_row_offset = sy * src.width;
+    int dest_row_offset = actual_y * front_framebuffer.width;
+
+    for (int dx = 0; dx < target_w; dx++) {
+      // Boundary check for X
+      int actual_x = dest_x + dx;
+      if (actual_x < 0 || actual_x >= front_framebuffer.width)
+        continue;
+
+      // Calculate source X coordinate
+      int sx = (int)(dx / scale_x);
+      // Safety clamp for source X
+      if (sx >= src.width)
+        sx = src.width - 1;
+
+      // Copy the pixel
+      uint8_t pixel = src.buffer[src_row_offset + sx];
+      if (pixel != 0) { // Transparency
+        front_framebuffer.buffer[dest_row_offset + actual_x] = pixel;
+      }
+    }
+  }
+}
+
+void TEYE_render_frame() {
+
+  signal(SIGWINCH, signalHandler);
+
+  // if (size_changed) {
+  //   // the back buffer is now misleading, clean it
+  //   TEYE_clear_buffer(buffer, 0)
+  // }
+
+  fflush(stdout);
 
   // Loop over the frame buffer, two rows at a time (since we render 2 rows per
   // character)
-  for (ushort i = 0; i < teye_instance.height - 1; i += 2) {
 
-    for (ushort j = 0; j < teye_instance.width; j++) {
-      // Combine two rows to form one character
-      uint8_t upper_half = teye_instance.frame_buffer[i][j];
-      uint8_t lower_half = teye_instance.frame_buffer[i + 1][j];
+  // cursor position on the screen
+  int i = 0;
+  int j = -1;
 
-      // Based on the character_value, pick the color
-      if (upper_half == lower_half) {
-        offset += snprintf(&string_buffer[offset], buf_size - offset,
-                           ANSI_COLOR_RESET BACKGROUND "%s ",
-                           get_color_from_number(upper_half));
-      } else {
-        offset += snprintf(&string_buffer[offset], buf_size - offset,
-                           FORGROUND "%s" BACKGROUND "%s▀",
-                           get_color_from_number(upper_half),
-                           get_color_from_number(lower_half));
-      }
+  // pixel position buffer
+  int x = 0, y = 0;
+  // track the starting index of each line
+  int x0 = 0, x1 = front_framebuffer.width;
+
+  // We gotta save so bytes by not sending the same color code twice
+  int prev_foreground = -1;
+  int prev_background = -1;
+
+  int to_ignore = 0;
+
+  // Go the the start of the line
+  CharBuffer_append_cursor_move(&char_buffer, 1, 1);
+
+  do {
+
+    if (++j >= front_framebuffer.width) {
+      j = 0;
+      i++;
+      if (i >= front_framebuffer.height / 2)
+        break;
+
+      y = i * 2;
+      x0 = y * front_framebuffer.width;
+      x1 = x0 + front_framebuffer.width;
+
+      prev_foreground = -1;
+      prev_background = -1;
+
+      CharBuffer_append_text(&char_buffer, ANSI_COLOR_RESET,
+                             strlen(ANSI_COLOR_RESET));
+
+      // Go the the start of the line
+      CharBuffer_append_cursor_move(&char_buffer, i + 1, j + 1);
     }
 
-    // End line with color reset and newline
-    offset += snprintf(&string_buffer[offset], buf_size - offset,
-                       ANSI_COLOR_RESET "\n");
+    x = j;
+
+    // Combine two rows to form one character
+    uint8_t upper_half = front_framebuffer.buffer[x0 + x];
+    uint8_t lower_half = front_framebuffer.buffer[x1 + x];
+    uint8_t cahed_upper_half = back_framebuffer.buffer[x0 + x];
+    uint8_t cached_lower_half = back_framebuffer.buffer[x1 + x];
+
+    // Check if this pixel is different from the cache
+    if (cahed_upper_half == upper_half && cached_lower_half == lower_half) {
+      to_ignore++;
+      continue;
+    }
+
+    // jump to the right coordinate
+    if (to_ignore > 0) {
+      CharBuffer_append_cursor_move(&char_buffer, i + 1, j + 1);
+      to_ignore = 0;
+    }
+
+    // check the previous background color
+    if (lower_half != prev_background) {
+      char *color = get_color_from_number(lower_half);
+      CharBuffer_append_text(&char_buffer, BACKGROUND, strlen(BACKGROUND));
+      CharBuffer_append_text(&char_buffer, color, strlen(color));
+
+      // update
+      prev_background = lower_half;
+    }
+
+    // Based on the character_value, pick the color
+    if (upper_half == lower_half) {
+      CharBuffer_append_text(&char_buffer, " ", 1);
+    } else {
+      if (upper_half != prev_foreground) {
+        char *color1 = get_color_from_number(upper_half);
+        CharBuffer_append_text(&char_buffer, FORGROUND, strlen(FORGROUND));
+        CharBuffer_append_text(&char_buffer, color1, strlen(color1));
+
+        prev_foreground = upper_half;
+      }
+      CharBuffer_append_text(&char_buffer, "▀", strlen("▀"));
+    }
+  } while (1);
+
+  if (screen_resized == 1) {
+    // The screen was resized, we need to reallocate the framebuffers
+    reset_frame_buffers();
+    screen_resized = 0;
+
+    move_cursor_top_left();
+    clear_screen();
   }
-  write(STDOUT_FILENO, string_buffer, offset);
 
-  // Final reset to ensure terminal colors are clean
-  write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
+  write(STDOUT_FILENO, char_buffer.buf, char_buffer.len);
 
-  free(string_buffer);
-}*/
+  // print the number of bytes written for profiling purposes
+  char buf[32];
+  snprintf(buf, 32, "written: %ld\n", char_buffer.len);
+  // write(STDERR_FILENO, buf, strlen(buf));
+
+  // Swaps the back and front buffers
+  uint8_t *temp = back_framebuffer.buffer;
+  back_framebuffer.buffer = front_framebuffer.buffer;
+  front_framebuffer.buffer = temp;
+
+  // Cleans the character buffer to make it usable for the next iteration
+  char_buffer.len = 0;
+  char_buffer.buf[0] = '\0';
+}
 
 /** Restore the terminal and clean the memory*/
 void TEYE_free() {
   show_cursor();
 
-  free(teye_instance.frame_buffer);
-  free(back_frame_buffer);
+  TEYE_free_buffer(&front_framebuffer);
+  TEYE_free_buffer(&back_framebuffer);
 
   CharBuffer_free(&char_buffer);
-  printf("\033[?1049l"); // Return to primary buffer
+  printf("\x1b[?1049l"); // Return to primary buffer
 }
 
 void panic(const char *s) {

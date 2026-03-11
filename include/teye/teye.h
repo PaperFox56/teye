@@ -29,6 +29,7 @@ SOFTWARE.
 #ifndef TEYE_H
 #define TEYE_H
 
+#include <stddef.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,52 +39,85 @@ extern "C" {
 #define TEYE_VERSION_MAJOR 0
 #define TEYE_VERSION_MINOR 2
 
-#define set_buffer_pixel(buf, x, y, color) buf.buffer[x + buf.width*y] = color
-#define get_buffer_pixel(buf, x, y) buffer.buf[x + buf.width*y]
+
+#define pixelcount(buffer) (buffer.width * buffer.height)
+
+#define set_buffer_pixel(buf, x, y, color) buf.buffer[x + buf.width * y] = color
+#define get_buffer_pixel(buf, x, y) buffer.buf[x + buf.width * y]
 
 // Drawing modes
-typedef enum {
-  Sample,
-  FitWidth,
-  FitHeight,
-  Stretch
-} DrawingMode;
+typedef enum { Sample, FitWidth, FitHeight, Stretch } DrawingMode;
 
 typedef unsigned short ushort;
 
 /**
-Please note that this buffer is managed internally by the library.
-Never call `free` on it.
+Unless there is absolute neceesity, it is advised not to manage this structure
+manually (except perhaps for writing into the buffer). Please use the helper
+functions and macros instead.
 */
 typedef struct {
 
-    ushort width;
-    ushort height;
-    // This buffer is written into by the user program
-    uint8_t *buffer; 
+  ushort width;
+  ushort height;
+
+  uint8_t *buffer;
+
+  size_t capacity;
 
 } TEYE_Buffer;
 
-
-// Effectively erase the old frame and bring the current frame's buffer to be drawn on the screen
+/* Initialize the terminal and the framebuffers */
 void TEYE_init();
 
 /*
 Allocate a buffer with the given size.
-If the buffer is already allocated, it reallocates it to fit the new size
+If the buffer is already allocated, it reallocates it to fit the new size.
+
+If the previous size was already sufficient, not allocation is needed.
+
+Return: `-1` if the allocation was succesful, `0` otherwise
  */
-int TEYE_allocate_buffer(TEYE_Buffer* buffer, int width, int height);
-void TEYE_free_buffer(TEYE_Buffer* buffer);
+int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height);
 
-/* Draw a bitmap from the given buffer to the internal one
-*/
-void TEYE_blit(const TEYE_Buffer buffer, DrawingMode mode, int x, int y, float scale_x, float scale_y);
-
-// Function to render the frame buffer, tries to fit the buffer's size to the
-// screen's
-// As buffer swapping is used, the function returns a pointer to the new buffer
-void TEYE_render_frame();
+/* Fills a buffer with the provided number */
 void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
+
+/* Deallocate a buffer. This function performs a check to prevent double free.
+ * Calling it twice by mistake should not cause memory corruption.
+ */
+void TEYE_free_buffer(TEYE_Buffer *buffer);
+
+/*
+TODO: Add an averaging mode.
+TODO2: This function does too much work, create a new one that doesn't take
+scaling arguments
+*/
+/* Draw a bitmap from the given buffer to the internal one
+The drawing mode is used to determine how the given bitmap is copied onto the
+buffer. The bitmap is converted to a scaled version (using the scaling factors.)
+and then placed at the right coordinates.
+- `Sample`: For each destination pixel in the screen buffer, the source
+coordinate is calculated and a single pixel is sampled.
+- `FitWidth`: The scale parameters are ignored. The bitmap is scaled in a way
+that it's width fits the screen.
+- `FitHeight`: The scale parameters are ignored. The bitmap is scaled in a way
+that it's height fits the screen.
+- `Stretch`: The scale parameters are ignored. The bitmap is scaled in a way
+that it's width fits the screen.
+*/
+void TEYE_blit(const TEYE_Buffer buffer, DrawingMode mode, int x, int y,
+               float scale_x, float scale_y);
+
+/*
+ Renders the internal buffer to the screen.
+ Note that the screen resize interrupt (SINWINCH) is only handled at the end of
+ the render. That means that the rendering buffer is still valid
+*/
+void TEYE_render_frame();
+
+/*
+Deallocate the frame buffers and restore the terminal's state.
+ */
 void TEYE_free();
 
 // Prints an error message and quit the program

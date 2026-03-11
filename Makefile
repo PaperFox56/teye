@@ -31,20 +31,25 @@ bin/%.o: src/%.c
 	@mkdir -p bin
 	$(CC) -c $< -o $@ $(CFLAGS)
 
+
+tests: install
+	make -C tests
+
 define install_rule
 	install -Dm644 $(1) $(DESTDIR)$(INCDIR)/$(notdir $(1))
+
 endef
 
 install: teye
 	@echo "Installing to $(PREFIX)..."
-	# 1. Install the library
+	# Install the library
 	install -Dm755 lib/$(LIBRARY) $(DESTDIR)$(LIBDIR)/$(LIBRARY)
 	
-	# 2. Install headers using Make's native foreach
+	# Install headers
 	$(foreach header,$(HEADERS),$(call install_rule,$(header)))
 	
 	@echo "Updating linker cache..."
 	-ldconfig $(LIBDIR)
 
 clean:
-	rm -rf bin lib
+	rm -rf bin lib tests/bin

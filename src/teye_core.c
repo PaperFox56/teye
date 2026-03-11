@@ -25,8 +25,6 @@ SOFTWARE.
 
  */
 
-/** */
-
 #include <locale.h>
 #include <signal.h>
 #include <stdio.h>
@@ -51,8 +49,6 @@ SOFTWARE.
 
 #define FORGROUND "\x1b[38;5;"
 #define BACKGROUND "\x1b[48;5;"
-
-#define pixelcount(buffer) (buffer.width * buffer.height)
 
 #define get_color_from_number(x) colors[x]
 
@@ -144,36 +140,6 @@ static void reset_frame_buffers() {
   TEYE_clear_buffer(back_framebuffer, 0);
 }
 
-int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height) {
-
-  if (width <= 0 || height <= 0) {
-    const char *error_text =
-        "Can't create a buffer with non-positive dimensions";
-    write(STDERR_FILENO, error_text, strlen(error_text));
-    return -1;
-  }
-
-  uint8_t *buf;
-
-  if (buffer->buffer == NULL)
-    buf = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
-  else
-    buf = (uint8_t *)realloc(buffer->buffer, sizeof(uint8_t) * width * height);
-
-  if (buf == NULL)
-    return -1;
-
-  buffer->width = width;
-  buffer->height = height;
-  buffer->buffer = buf;
-
-  return 0;
-}
-
-void TEYE_free_buffer(TEYE_Buffer *buffer) {
-  free(buffer->buffer);
-  buffer->buffer = NULL;
-}
 
 void TEYE_init() {
 
@@ -186,10 +152,6 @@ void TEYE_init() {
 
   if (CharBuffer_init(&char_buffer) < 0)
     panic("teye: Couldn't initialize a character buffer");
-}
-
-void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color) {
-  memset(buffer.buffer, color, pixelcount(buffer));
 }
 
 void TEYE_blit(TEYE_Buffer src, DrawingMode mode, int dest_x, int dest_y,

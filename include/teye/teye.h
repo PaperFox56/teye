@@ -51,9 +51,11 @@ typedef enum { Sample, FitWidth, FitHeight, Stretch } DrawingMode;
 typedef unsigned short ushort;
 
 /**
-Unless there is absolute neceesity, it is advised not to manage this structure
+Note 1: Unless it is absolutely necessary, it is advised not to manage this structure
 manually (except perhaps for writing into the buffer). Please use the helper
 functions and macros instead.
+
+Note 2: To prevent undefined behaviour, always initialize the structure to {0};
 */
 typedef struct {
 

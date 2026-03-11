@@ -53,7 +53,6 @@ SOFTWARE.
 #define get_color_from_number(x) colors[x]
 
 #define clamp(x, min, max) (x < min ? min : (x > max ? max : x))
-#define min(a, b) (a < b ? a : b)
 
 /****************
  Global variables

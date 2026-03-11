@@ -16,7 +16,7 @@ int main() {
 
     signal(SIGINT, signal_handler);
 
-    TEYE_Buffer buffer;
+    TEYE_Buffer buffer = {0};
 
     TEYE_init();
     TEYE_allocate_buffer(&buffer, w, h);

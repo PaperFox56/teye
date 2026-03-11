@@ -321,12 +321,14 @@ void TEYE_render_frame() {
   // print the number of bytes written for profiling purposes
   char buf[32];
   snprintf(buf, 32, "written: %ld\n", char_buffer.len);
-  // write(STDERR_FILENO, buf, strlen(buf));
+  write(STDERR_FILENO, buf, strlen(buf));
 
   // Swaps the back and front buffers
   uint8_t *temp = back_framebuffer.buffer;
   back_framebuffer.buffer = front_framebuffer.buffer;
   front_framebuffer.buffer = temp;
+
+  TEYE_clear_buffer(front_framebuffer, 0);
 
   // Cleans the character buffer to make it usable for the next iteration
   char_buffer.len = 0;

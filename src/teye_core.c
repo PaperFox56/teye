@@ -52,19 +52,46 @@ SOFTWARE.
 
 #define get_color_from_number(x) colors[x]
 
+#define min(a, b) (a < b ? a : b)
+#define max(a, b) (a > b ? a : b)
+
 #define clamp(x, min, max) (x < min ? min : (x > max ? max : x))
 
 /****************
  Global variables
  ****************/
-static char colors[][32] = {
-    "0m",   // void
-    "231m", // White
-    "188m", // Light gray
-    "102m", // Dark gray
-    "16m",  // Black
-    "87m",
-};
+
+// Nothing to see there, just a classic lookup table
+char colors[][32] = {
+    "0m",   "1m",   "2m",   "3m",   "4m",   "5m",   "6m",   "7m",   "8m",
+    "9m",   "10m",  "11m",  "12m",  "13m",  "14m",  "15m",  "16m",  "17m",
+    "18m",  "19m",  "20m",  "21m",  "22m",  "23m",  "24m",  "25m",  "26m",
+    "27m",  "28m",  "29m",  "30m",  "31m",  "32m",  "33m",  "34m",  "35m",
+    "36m",  "37m",  "38m",  "39m",  "40m",  "41m",  "42m",  "43m",  "44m",
+    "45m",  "46m",  "47m",  "48m",  "49m",  "50m",  "51m",  "52m",  "53m",
+    "54m",  "55m",  "56m",  "57m",  "58m",  "59m",  "60m",  "61m",  "62m",
+    "63m",  "64m",  "65m",  "66m",  "67m",  "68m",  "69m",  "70m",  "71m",
+    "72m",  "73m",  "74m",  "75m",  "76m",  "77m",  "78m",  "79m",  "80m",
+    "81m",  "82m",  "83m",  "84m",  "85m",  "86m",  "87m",  "88m",  "89m",
+    "90m",  "91m",  "92m",  "93m",  "94m",  "95m",  "96m",  "97m",  "98m",
+    "99m",  "100m", "101m", "102m", "103m", "104m", "105m", "106m", "107m",
+    "108m", "109m", "110m", "111m", "112m", "113m", "114m", "115m", "116m",
+    "117m", "118m", "119m", "120m", "121m", "122m", "123m", "124m", "125m",
+    "126m", "127m", "128m", "129m", "130m", "131m", "132m", "133m", "134m",
+    "135m", "136m", "137m", "138m", "139m", "140m", "141m", "142m", "143m",
+    "144m", "145m", "146m", "147m", "148m", "149m", "150m", "151m", "152m",
+    "153m", "154m", "155m", "156m", "157m", "158m", "159m", "160m", "161m",
+    "162m", "163m", "164m", "165m", "166m", "167m", "168m", "169m", "170m",
+    "171m", "172m", "173m", "174m", "175m", "176m", "177m", "178m", "179m",
+    "180m", "181m", "182m", "183m", "184m", "185m", "186m", "187m", "188m",
+    "189m", "190m", "191m", "192m", "193m", "194m", "195m", "196m", "197m",
+    "198m", "199m", "200m", "201m", "202m", "203m", "204m", "205m", "206m",
+    "207m", "208m", "209m", "210m", "211m", "212m", "213m", "214m", "215m",
+    "216m", "217m", "218m", "219m", "220m", "221m", "222m", "223m", "224m",
+    "225m", "226m", "227m", "228m", "229m", "230m", "231m", "232m", "233m",
+    "234m", "235m", "236m", "237m", "238m", "239m", "240m", "241m", "242m",
+    "243m", "244m", "245m", "246m", "247m", "248m", "249m", "250m", "251m",
+    "252m", "253m", "254m", "255m"};
 
 // tracks whether the terminal size changed since the last frame
 static volatile sig_atomic_t screen_resized = 0;
@@ -139,7 +166,6 @@ static void reset_frame_buffers() {
   TEYE_clear_buffer(back_framebuffer, 0);
 }
 
-
 void TEYE_init() {
 
   printf("\x1b[?1049h"); // Switch to alternate buffer
@@ -151,6 +177,10 @@ void TEYE_init() {
 
   if (CharBuffer_init(&char_buffer) < 0)
     panic("teye: Couldn't initialize a character buffer");
+
+  // Since the buffer is going to grow anyway, we might as well do that now
+  // We use an estimate of the number of character expected to render a frame
+  CharBuffer_grow(&char_buffer, pixelcount(front_framebuffer) * 10);
 }
 
 void TEYE_blit(TEYE_Buffer src, DrawingMode mode, int dest_x, int dest_y,
@@ -171,40 +201,45 @@ void TEYE_blit(TEYE_Buffer src, DrawingMode mode, int dest_x, int dest_y,
   int target_w = (int)(src.width * scale_x);
   int target_h = (int)(src.height * scale_y);
 
-  // Iterate over the destination buffer
-  for (int dy = 0; dy < target_h; dy++) {
-    // Boundary check for y
-    int actual_y = dest_y + dy;
-    if (actual_y < 0 || actual_y >= front_framebuffer.height)
-      continue;
+  // Clip the bitmap so that only the pixels that are actually on the screen
+  // space are considered
+  int min_y = max(dest_y, 0);
+  int max_y = min(dest_y + target_h, front_framebuffer.height);
+  int min_x = max(dest_x, 0);
+  int max_x = min(dest_x + target_w, front_framebuffer.width);
 
-    // Pre-calculate the source Y coordinate
-    int sy = (int)(dy / scale_y);
-    // Safety clamp for source Y
-    if (sy >= src.height)
-      sy = src.height - 1;
+  // Fixed-Point Setup (using 16.16 shift)
+  int step_x = (int)((1.0f / scale_x) * 65536);
+  int step_y = (int)((1.0f / scale_y) * 65536);
 
-    int src_row_offset = sy * src.width;
+  // Calculate initial source positions based on clipping
+  int initial_sx = (min_x - dest_x) * step_x;
+  int initial_sy = (min_y - dest_y) * step_y;
+
+  int sy_fixed = initial_sy;
+
+  for (int actual_y = min_y; actual_y < max_y; actual_y++) {
+    int isy = sy_fixed >> 16; // Shift right to get the integer part
+    if (isy >= src.height)
+      isy = src.height - 1;
+
+    int src_row_offset = isy * src.width;
     int dest_row_offset = actual_y * front_framebuffer.width;
 
-    for (int dx = 0; dx < target_w; dx++) {
-      // Boundary check for X
-      int actual_x = dest_x + dx;
-      if (actual_x < 0 || actual_x >= front_framebuffer.width)
-        continue;
+    int sx_fixed = initial_sx;
 
-      // Calculate source X coordinate
-      int sx = (int)(dx / scale_x);
-      // Safety clamp for source X
-      if (sx >= src.width)
-        sx = src.width - 1;
+    for (int actual_x = min_x; actual_x < max_x; actual_x++) {
+      int isx = sx_fixed >> 16;
+      if (isx >= src.width)
+        isx = src.width - 1;
 
-      // Copy the pixel
-      uint8_t pixel = src.buffer[src_row_offset + sx];
-      if (pixel != 0) { // Transparency
+      uint8_t pixel = src.buffer[src_row_offset + isx];
+      if (pixel != 0) {
         front_framebuffer.buffer[dest_row_offset + actual_x] = pixel;
       }
+      sx_fixed += step_x;
     }
+    sy_fixed += step_y;
   }
 }
 
@@ -319,9 +354,6 @@ void TEYE_render_frame() {
   write(STDOUT_FILENO, char_buffer.buf, char_buffer.len);
 
   // print the number of bytes written for profiling purposes
-  char buf[32];
-  snprintf(buf, 32, "written: %ld\n", char_buffer.len);
-  write(STDERR_FILENO, buf, strlen(buf));
 
   // Swaps the back and front buffers
   uint8_t *temp = back_framebuffer.buffer;

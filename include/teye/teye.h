@@ -42,8 +42,8 @@ extern "C" {
 
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
-#define set_buffer_pixel(buf, x, y, color) buf.buffer[x + buf.width * y] = color
-#define get_buffer_pixel(buf, x, y) buffer.buf[x + buf.width * y]
+#define set_buffer_pixel(buf, x, y, color) buf.buffer[(x) + buf.width * (y)] = color
+#define get_buffer_pixel(buf, x, y) buffer.buf[(x) + buf.width * (y)]
 
 // Drawing modes
 typedef enum { Sample, FitWidth, FitHeight, Stretch } DrawingMode;

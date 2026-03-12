@@ -2,7 +2,7 @@ TEST_TARGETS := bounce
 BIN_DIR := bin
 
 CFLAGS  := -Wall -Wextra -pedantic -I../include -l teye
-CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L
+CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L -g -O2
 
 all: $(TEST_TARGETS)
 

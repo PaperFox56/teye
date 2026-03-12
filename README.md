@@ -4,10 +4,16 @@ I have recently been working on many small project where I needed to draw bitmap
 Here it is. I hope this can be useful to someone else. Feel free to use the code in your own project and if you encounter any issues, either open an issue in the corresponding session or change the code to your heart content and  open a PR so that everyone can benefit.
 
 ## Version
+0.2.2
 
-0.2.0
+### Changelog from 0.2.1
+Changed the color map to the 256-xterm color map
 
-Implementing double buffering capabilities to increase speed
+
+### Objectives for 0.3
+- Add support for more rendering methods
+- Allow blit between any two arbitrary buffers
+- Give more control to the user (restrict rendering region, not clear screen witout user permission)
 
 ## Licence
 See LICENCE for more information.

@@ -3,9 +3,11 @@ ifneq (,)
 This makefile requires GNU Make
 endif
 
+DEBUG_FLAGS := -g
+
 CC      := gcc
 CFLAGS  := -Wall -Wextra -pedantic -fPIC -O2 -Iinclude
-CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L
+CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L $(DEBUG_FLAGS)
 LFLAGS  := -shared
 
 PREFIX  ?= /usr/local

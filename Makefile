@@ -3,10 +3,10 @@ ifneq (,)
 This makefile requires GNU Make
 endif
 
-DEBUG_FLAGS := -g
+DEBUG_FLAGS := -g -fsanitize=address
 
 CC      := gcc
-CFLAGS  := -Wall -Wextra -pedantic -fPIC -O2 -Iinclude
+CFLAGS  := -Wall -Wextra -pedantic -fPIC -O0 -Iinclude
 CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L $(DEBUG_FLAGS)
 LFLAGS  := -shared
 

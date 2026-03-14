@@ -4,15 +4,16 @@ I have recently been working on many small project where I needed to draw bitmap
 Here it is. I hope this can be useful to someone else. Feel free to use the code in your own project and if you encounter any issues, either open an issue in the corresponding session or change the code to your heart content and  open a PR so that everyone can benefit.
 
 ## Version
-0.2.2
+0.3.0
 
-### Changelog from 0.2.1
-Changed the color map to the 256-xterm color map
+### Changelog from 0.2
+Refactored the API to give more control to the user
+- The enum `DrawingMode` was renamed to `ScalingMode` for more clarity
+- Add a collection of `blit` functions to give a more fine grained control to the drawing process
+- The enum `SampleMode` was created in prevision for an upcoming feature
+- The function `TEYE_get_framebuffer` was added to the public API
 
-
-### Objectives for 0.3
-- Add support for more rendering methods
-- Allow blit between any two arbitrary buffers
+### Objectives for 0.4
 - Give more control to the user (restrict rendering region, not clear screen witout user permission)
 
 ## Licence
@@ -20,12 +21,8 @@ See LICENCE for more information.
 
 ## Contents
 
-- src/teye.c, include/teye.h - core framebuffer and terminal render code (TEYE_* API)
-
-## Features
-
-- Minimal framebuffer API for terminal rendering (TEYE_init, TEYE_render_frame_mode_1/2, TEYE_clear_buffer, TEYE_free)
-- Two rendering modes (character-based color blocks and foreground/background blended characters)
+- src/, include/ - core framebuffer and terminal render code (TEYE_* API)
+- tests/ - ontains small programs used to test the features
 
 ## Requirements
 
@@ -34,32 +31,28 @@ See LICENCE for more information.
 
 ## Build and run
 
-Use Make
+Use Make:
 
-   ```make
-      sudo make install
+   ```bash
+   make
+   sudo make install
    ```
 
-will build the library and install it in /usr/local/ along with the headers
-with any of your projects.
+will build the library and install it in /usr/local/.
 
+To build the tests:
+
+```bash
+sudo make tests
+```
+
+`sudo` is required as the the commad also install the library.
 
 
 ## Using the TEYE API (example)
-Here is a minimal example showing how the library is used (based on the existing code):
+Feel free to see the examples in the tests/ sections. They are kept in sync with the library.
 
-```c
-#include <teye/teye.h>
+## Contributing
 
-int main(void) {
-    TEYE_Buffer buf = TEYE_init(160, 60); // create a buffer
+Please feel free to open an issue if you find any bug
 
-    // draw directly into buf.frame_buffer[y][x] using small integers as color indices
-    // (see src/teye.c for color table and rendering behavior)
-
-    TEYE_render_frame_mode_2(); // render to terminal
-
-    TEYE_free();
-    return 0;
-}
-```

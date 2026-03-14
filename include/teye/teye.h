@@ -1,28 +1,10 @@
 /**
  * teye.h
 
-MIT License
-
 Copyright (c) 2026 PaperFox56
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
+This file is part of the teye library source code.
+See the LICENCE section for details.
 
  */
 
@@ -39,23 +21,31 @@ extern "C" {
 #define TEYE_VERSION_MAJOR 0
 #define TEYE_VERSION_MINOR 2
 
-
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
-#define set_buffer_pixel(buf, x, y, color) buf.buffer[(x) + buf.width * (y)] = color
+#define set_buffer_pixel(buf, x, y, color)                                     \
+  buf.buffer[(x) + buf.width * (y)] = color
 #define get_buffer_pixel(buf, x, y) buffer.buf[(x) + buf.width * (y)]
 
 // Drawing modes
-typedef enum { Sample, FitWidth, FitHeight, Stretch } DrawingMode;
+typedef enum { FitWidth, FitHeight, Stretch } ScalingMode;
+// Intended feature implementation
+typedef enum {
+  Normal,
+  Average,
+  FindAGoodNameForThisOne // You know, the one were you take the most present
+                          // color in a region
+} SamplingMode;
 
 typedef unsigned short ushort;
 
 /**
-Note 1: Unless it is absolutely necessary, it is advised not to manage this structure
-manually (except perhaps for writing into the buffer). Please use the helper
-functions and macros instead.
+Note 1: Unless it is absolutely necessary, it is advised not to manage this
+structure manually (except for writing into the buffer). Please use
+the helper functions and macros instead.
 
-Note 2: To prevent undefined behaviour, always initialize the structure to {0};
+Note 2: To prevent undefined behaviour, always initialize the structure to
+{0} before requesting the first allocation.
 */
 typedef struct {
 
@@ -89,26 +79,48 @@ void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
  */
 void TEYE_free_buffer(TEYE_Buffer *buffer);
 
+/*Returns one of the internal frame buffer. Note that since this is not a
+ * pointer, this buffer WILL become invalid after every frame redraw (or if the
+ * framebuffers are manually updated, this is feature that will probably be
+ * implemented for the 0.4.0 version).
+ `0` - The front framebuffer (the one which is actively been drawn on and will
+ be rendered on the next request)
+ `1` - The back framebuffer (hold the previous frame)
+ Any other argument is ignored and will return an invalid buffer.
+ */
+TEYE_Buffer TEYE_get_framebuffer(int index);
+
+/**
+This function draws a bitmap from the given buffer to the internal one.
+This is a shortcut for
+`TEYE_blit_custom_scale_to(TEYE_get_framebuffer(0), src, mode, x, y);`
+*/
+void TEYE_blit(const TEYE_Buffer src, ScalingMode mode, int x, int y);
+
 /*
-TODO: Add an averaging mode.
-TODO2: This function does too much work, create a new one that doesn't take
-scaling arguments
-*/
-/* Draw a bitmap from the given buffer to the internal one
+Copy a bitmap from the source buffer to the destination without applying any
+scaling. This is the same as using `TEYE_blit_and_scale_to` with 1 for the scaling
+arguments, except it's faster since no expensive calculation is done and the
+memory can be copied using memcpy.
+ */
+void TEYE_blit_copy_to(TEYE_Buffer dest, const TEYE_Buffer src, int x, int y);
+
+/*Draw a bitmap from the source buffer to the destination.
+The bitmap is converted to a scaled version and then placed at the right
+coordinates.*/
+void TEYE_blit_and_scale_to(TEYE_Buffer dest, const TEYE_Buffer src, int x,
+                            int y, float scale_x, float scale_y);
+
+/* Draw a bitmap from the given buffer to the destination.
 The drawing mode is used to determine how the given bitmap is copied onto the
-buffer. The bitmap is converted to a scaled version (using the scaling factors.)
-and then placed at the right coordinates.
-- `Sample`: For each destination pixel in the screen buffer, the source
-coordinate is calculated and a single pixel is sampled.
-- `FitWidth`: The scale parameters are ignored. The bitmap is scaled in a way
-that it's width fits the screen.
-- `FitHeight`: The scale parameters are ignored. The bitmap is scaled in a way
-that it's height fits the screen.
-- `Stretch`: The scale parameters are ignored. The bitmap is scaled in a way
-that it's width fits the screen.
+buffer.
+- `FitWidth`: The bitmap is scaled in a way that its width fits the screen.
+- `FitHeight`: The bitmap is scaled in a way that its height fits the screen.
+- `Stretch`: The bitmap is scaled in a way that both its height its width fits
+the screen.
 */
-void TEYE_blit(const TEYE_Buffer buffer, DrawingMode mode, int x, int y,
-               float scale_x, float scale_y);
+void TEYE_blit_custom_scale_to(TEYE_Buffer dest, const TEYE_Buffer src,
+                               ScalingMode mode, int x, int y);
 
 /*
  Renders the internal buffer to the screen.

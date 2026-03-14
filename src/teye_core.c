@@ -1,27 +1,10 @@
 /**
- * teye.c
-
- MIT License
+ * teye_core.c
 
 Copyright (c) 2026 PaperFox56
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+This file is part of the teye library source code.
+See the LICENCE section for details.
 
  */
 
@@ -52,9 +35,6 @@ SOFTWARE.
 
 #define get_color_from_number(x) colors[x]
 
-#define min(a, b) (a < b ? a : b)
-#define max(a, b) (a > b ? a : b)
-
 #define clamp(x, min, max) (x < min ? min : (x > max ? max : x))
 
 /****************
@@ -62,7 +42,7 @@ SOFTWARE.
  ****************/
 
 // Nothing to see there, just a classic lookup table
-char colors[][32] = {
+static char colors[][32] = {
     "0m",   "1m",   "2m",   "3m",   "4m",   "5m",   "6m",   "7m",   "8m",
     "9m",   "10m",  "11m",  "12m",  "13m",  "14m",  "15m",  "16m",  "17m",
     "18m",  "19m",  "20m",  "21m",  "22m",  "23m",  "24m",  "25m",  "26m",
@@ -110,9 +90,8 @@ static struct CharBuffer char_buffer;
 
 static void signalHandler() {
   screen_resized = 1;
-
-  char buf[32] = "screen resized\n";
-  write(STDERR_FILENO, buf, strlen(buf));
+  // char buf[32] = "screen resized\n";
+  // write(STDERR_FILENO, buf, strlen(buf));
 }
 
 /**
@@ -183,64 +162,21 @@ void TEYE_init() {
   CharBuffer_grow(&char_buffer, pixelcount(front_framebuffer) * 10);
 }
 
-void TEYE_blit(TEYE_Buffer src, DrawingMode mode, int dest_x, int dest_y,
-               float scale_x, float scale_y) {
-
-  if (mode == FitWidth) {
-    scale_x = (float)front_framebuffer.width / src.width;
-    scale_y = scale_x;
-  } else if (mode == FitHeight) {
-    scale_y = (float)front_framebuffer.height / src.height;
-    scale_x = scale_y;
-  } else if (mode == Stretch) {
-    scale_x = (float)front_framebuffer.width / src.width;
-    scale_y = (float)front_framebuffer.height / src.height;
+TEYE_Buffer TEYE_get_framebuffer(int index) {
+  switch (index) {
+  case 0:
+    return front_framebuffer;
+  case 1:
+    return back_framebuffer;
+  default: {
+    TEYE_Buffer invalid = {0};
+    return invalid;
   }
-
-  // Calculate the target dimensions in the internal buffer
-  int target_w = (int)(src.width * scale_x);
-  int target_h = (int)(src.height * scale_y);
-
-  // Clip the bitmap so that only the pixels that are actually on the screen
-  // space are considered
-  int min_y = max(dest_y, 0);
-  int max_y = min(dest_y + target_h, front_framebuffer.height);
-  int min_x = max(dest_x, 0);
-  int max_x = min(dest_x + target_w, front_framebuffer.width);
-
-  // Fixed-Point Setup (using 16.16 shift)
-  int step_x = (int)((1.0f / scale_x) * 65536);
-  int step_y = (int)((1.0f / scale_y) * 65536);
-
-  // Calculate initial source positions based on clipping
-  int initial_sx = (min_x - dest_x) * step_x;
-  int initial_sy = (min_y - dest_y) * step_y;
-
-  int sy_fixed = initial_sy;
-
-  for (int actual_y = min_y; actual_y < max_y; actual_y++) {
-    int isy = sy_fixed >> 16; // Shift right to get the integer part
-    if (isy >= src.height)
-      isy = src.height - 1;
-
-    int src_row_offset = isy * src.width;
-    int dest_row_offset = actual_y * front_framebuffer.width;
-
-    int sx_fixed = initial_sx;
-
-    for (int actual_x = min_x; actual_x < max_x; actual_x++) {
-      int isx = sx_fixed >> 16;
-      if (isx >= src.width)
-        isx = src.width - 1;
-
-      uint8_t pixel = src.buffer[src_row_offset + isx];
-      if (pixel != 0) {
-        front_framebuffer.buffer[dest_row_offset + actual_x] = pixel;
-      }
-      sx_fixed += step_x;
-    }
-    sy_fixed += step_y;
   }
+}
+
+void TEYE_blit(TEYE_Buffer src, ScalingMode mode, int x, int y) {
+  TEYE_blit_custom_scale_to(front_framebuffer, src, mode, x, y);
 }
 
 void TEYE_render_frame() {
@@ -254,8 +190,8 @@ void TEYE_render_frame() {
 
   fflush(stdout);
 
-  // Loop over the frame buffer, two rows at a time (since we render 2 rows per
-  // character)
+  // Loop over the frame buffer, two rows at a time (since we render 2 rows
+  // per character)
 
   // cursor position on the screen
   int i = 0;

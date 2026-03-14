@@ -48,7 +48,8 @@ int main() {
             }
         }
 
-        TEYE_blit(buffer, FitHeight, 0, 0, 1, 1);
+        TEYE_Buffer framebuffer = TEYE_get_framebuffer(0);
+        TEYE_blit_copy_to(framebuffer, buffer, 0, 0);
         TEYE_render_frame();
 
         sleep_ms(1000/60);

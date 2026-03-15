@@ -11,7 +11,7 @@ Refactored the API to give more control to the user
 - The enum `DrawingMode` was renamed to `ScalingMode` for more clarity
 - Add a collection of `blit` functions to give a more fine grained control to the drawing process
 - The enum `SampleMode` was created in prevision for an upcoming feature
-- The function `TEYE_get_framebuffer` was added to the public API
+- The function `TEYE_get_framebuffer` was added to the public API. This function allows the user to write directly to the framebuffers or read from them.
 
 ### Objectives for 0.4
 - Give more control to the user (restrict rendering region, not clear screen witout user permission)

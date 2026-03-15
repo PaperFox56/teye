@@ -37,7 +37,7 @@ typedef enum {
                           // color in a region
 } SamplingMode;
 
-typedef unsigned short ushort;
+typedef int (*TEYE_ResizeCallback)(unsigned short, unsigned short);
 
 /**
 Note 1: Unless it is absolutely necessary, it is advised not to manage this
@@ -49,8 +49,8 @@ Note 2: To prevent undefined behaviour, always initialize the structure to
 */
 typedef struct {
 
-  ushort width;
-  ushort height;
+  unsigned short width;
+  unsigned short height;
 
   uint8_t *buffer;
 
@@ -61,13 +61,22 @@ typedef struct {
 /* Initialize the terminal and the framebuffers */
 void TEYE_init();
 
+/* NON-IMPLEMENTED!
+ * Gives Teye a callback that will be called on window resize events. That
+ * function has to be of the type `TEYE_ResizeCallback`.
+ * It should take as arguments the new size of the rendering window and return a
+ * flag number dictating how the event will be handled. Each bit of the flag
+ * control one particular behaviour. Please refer to the macros for more
+ * information.*/
+void set_resize_callback(TEYE_ResizeCallback callback);
+
 /*
 Allocate a buffer with the given size.
 If the buffer is already allocated, it reallocates it to fit the new size.
 
 If the previous size was already sufficient, not allocation is needed.
 
-Return: `-1` if the allocation was succesful, `0` otherwise
+Return: `0` if the allocation was succesful, `-1` otherwise
  */
 int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height);
 
@@ -99,9 +108,9 @@ void TEYE_blit(const TEYE_Buffer src, ScalingMode mode, int x, int y);
 
 /*
 Copy a bitmap from the source buffer to the destination without applying any
-scaling. This is the same as using `TEYE_blit_and_scale_to` with 1 for the scaling
-arguments, except it's faster since no expensive calculation is done and the
-memory can be copied using memcpy.
+scaling. This is the same as using `TEYE_blit_and_scale_to` with 1 for the
+scaling arguments, except it's faster since no expensive calculation is done and
+the memory can be copied using memcpy.
  */
 void TEYE_blit_copy_to(TEYE_Buffer dest, const TEYE_Buffer src, int x, int y);
 

@@ -84,6 +84,8 @@ static TEYE_Buffer back_framebuffer;
 // Stores the frame's bytes before sending to the terminal
 static struct CharBuffer char_buffer;
 
+static TEYE_ResizeCallback resize_callback = NULL;
+
 /****************
  Functions
 *****************/
@@ -160,6 +162,10 @@ void TEYE_init() {
   // Since the buffer is going to grow anyway, we might as well do that now
   // We use an estimate of the number of character expected to render a frame
   CharBuffer_grow(&char_buffer, pixelcount(front_framebuffer) * 10);
+}
+
+void TEYE_set_resize_callback(TEYE_ResizeCallback callback) {
+  resize_callback = callback;
 }
 
 TEYE_Buffer TEYE_get_framebuffer(int index) {
@@ -279,9 +285,16 @@ void TEYE_render_frame() {
   } while (1);
 
   if (screen_resized == 1) {
+
     // The screen was resized, we need to reallocate the framebuffers
     reset_frame_buffers();
     screen_resized = 0;
+
+    // TODO: take into account the return value of the function
+    if (resize_callback != NULL) {
+      int code =
+          resize_callback(front_framebuffer.width, front_framebuffer.height);
+    }
 
     move_cursor_top_left();
     clear_screen();

@@ -68,7 +68,7 @@ void TEYE_init();
  * flag number dictating how the event will be handled. Each bit of the flag
  * control one particular behaviour. Please refer to the macros for more
  * information.*/
-void set_resize_callback(TEYE_ResizeCallback callback);
+void TEYE_set_resize_callback(TEYE_ResizeCallback callback);
 
 /*
 Allocate a buffer with the given size.

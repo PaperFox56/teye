@@ -1,14 +1,16 @@
-name: Generate Documentation
+name: Deploy Doxygen to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: ["main"] # Or your default branch
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -19,8 +21,16 @@ jobs:
         with:
           doxyfile-path: './Doxyfile'
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: doc/html
+          # Doxygen usually outputs to a folder named 'html' 
+          # Check your Doxyfile's OUTPUT_DIRECTORY setting
+          path: 'docs/html' 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

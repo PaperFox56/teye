@@ -27,7 +27,7 @@ int main() {
     int v = 2;
 
     while (running) {
-        TEYE_clear_buffer(buffer, 1);
+        TEYE_clear_buffer(buffer, 16);
 
         pos_y += v;
 
@@ -43,13 +43,13 @@ int main() {
                 int y = j - pos_y;
 
                 if (x*x + y*y < 1000) {
-                    set_buffer_pixel(buffer, i, j, 3);
+                    set_buffer_pixel(buffer, i, j, 231);
                 }
             }
         }
 
-        TEYE_Buffer framebuffer = TEYE_get_framebuffer(0);
-        TEYE_blit_copy_to(framebuffer, buffer, 0, 0);
+        //TEYE_Buffer framebuffer = TEYE_get_framebuffer(0);
+        TEYE_blit(buffer, FitWidth, 0, 0);
         TEYE_render_frame();
 
         sleep_ms(1000/60);

@@ -1,5 +1,5 @@
 /**
- * teye.h
+ @file teye.h
 
 Copyright (c) 2026 PaperFox56
 
@@ -22,10 +22,6 @@ extern "C" {
 #define TEYE_VERSION_MINOR 2
 
 #define pixelcount(buffer) (buffer.width * buffer.height)
-
-#define set_buffer_pixel(buf, x, y, color)                                     \
-  buf.buffer[(x) + buf.width * (y)] = color
-#define get_buffer_pixel(buf, x, y) buffer.buf[(x) + buf.width * (y)]
 
 // Drawing modes
 typedef enum { FitWidth, FitHeight, Stretch } ScalingMode;

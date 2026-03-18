@@ -2,7 +2,7 @@ name: Deploy Doxygen to GitHub Pages
 
 on:
   push:
-    branches: ["main"] # Or your default branch
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -32,3 +32,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          folder: .
+          branch: gh-pages

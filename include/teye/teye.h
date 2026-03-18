@@ -19,7 +19,7 @@ extern "C" {
 #include <stdint.h>
 
 #define TEYE_VERSION_MAJOR 0
-#define TEYE_VERSION_MINOR 3
+#define TEYE_VERSION_MINOR 2
 
 #define pixelcount(buffer) (buffer.width * buffer.height)
 

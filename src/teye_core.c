@@ -42,7 +42,7 @@ See the LICENCE section for details.
  ****************/
 
 // Nothing to see there, just a classic lookup table
-static char colors[][5] = {
+static char colors[][32] = {
     "0m",   "1m",   "2m",   "3m",   "4m",   "5m",   "6m",   "7m",   "8m",
     "9m",   "10m",  "11m",  "12m",  "13m",  "14m",  "15m",  "16m",  "17m",
     "18m",  "19m",  "20m",  "21m",  "22m",  "23m",  "24m",  "25m",  "26m",

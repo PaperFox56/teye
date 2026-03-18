@@ -27,8 +27,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Doxygen usually outputs to a folder named 'html' 
-          # Check your Doxyfile's OUTPUT_DIRECTORY setting
           path: 'docs/html' 
 
       - name: Deploy to GitHub Pages

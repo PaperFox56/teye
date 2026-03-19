@@ -16,8 +16,11 @@ Refactored the API to give more control to the user
 ### Objectives for 0.4
 - Give more control to the user (restrict rendering region, not clear screen witout user permission)
 
+## Contributing to the project
+Please read [here](CONTRIBUTING.md) for information on how to help the project.
+
 ## Licence
-See LICENCE for more information.
+See [LICENCE](LICENCE) for more information.
 
 ## Contents
 

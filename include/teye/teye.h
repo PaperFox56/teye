@@ -19,7 +19,7 @@ extern "C" {
 #include <stdint.h>
 
 #define TEYE_VERSION_MAJOR 0
-#define TEYE_VERSION_MINOR 2
+#define TEYE_VERSION_MINOR 3
 
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
@@ -76,7 +76,7 @@ Return: `0` if the allocation was succesful, `-1` otherwise
  */
 int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height);
 
-/* Fills a buffer with the provided number */
+/** Fills a buffer with the provided number */
 void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
 
 /* Deallocate a buffer. This function performs a check to prevent double free.

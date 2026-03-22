@@ -51,7 +51,7 @@ make tests
 
 More about the build system [here](BUILD.md)
 
-## Using the TEYE API (example)
+## Using the TEYE API
 Feel free to see the examples in the tests/ sections. They are kept in sync with the library.
 
 ## Contributing

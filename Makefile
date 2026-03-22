@@ -1,12 +1,22 @@
-# Ensure GNU Make
 ifneq (,)
-This makefile requires GNU Make
+this makefile requires GNU Make
 endif
 
-DEBUG_FLAGS := -g -fsanitize=address
+# Build configuration
+DEBUG ?= 0
+STATIC ?= 0
+BUILD_TYPE ?= both  # options: shared, static, both
+
+ifeq ($(DEBUG),1)
+DEBUG_FLAGS := -g -fsanitize=address -O0
+else
+DEBUG_FLAGS := -O2
+endif
 
 CC      := gcc
-CFLAGS  := -Wall -Wextra -pedantic -fPIC -O0 -Iinclude
+AR      := ar
+ARFLAGS := rcs
+CFLAGS  := -Wall -Wextra -pedantic -fPIC -Iinclude
 CFLAGS  += -std=c99 -D_POSIX_C_SOURCE=200809L $(DEBUG_FLAGS)
 LFLAGS  := -shared
 
@@ -14,44 +24,73 @@ PREFIX  ?= /usr/local
 LIBDIR  := $(PREFIX)/lib
 INCDIR  := $(PREFIX)/include/teye
 
-LIBRARY := libteye.so
+LIBRARY_SHARED := libteye.so
+LIBRARY_STATIC := libteye.a
 SRCS    := $(wildcard src/*.c)
 LOBJS   := $(SRCS:src/%.c=bin/%.o)
 HEADERS := $(wildcard include/teye/*.h)
 
-.PHONY: all teye install clean
+.PHONY: all shared static tests install uninstall clean
 
-all: teye
+all: $(BUILD_TYPE)
 
-# Build the shared library
-teye: $(LOBJS)
+# Build shared library
+shared: $(LOBJS)
 	@mkdir -p lib
-	$(CC) $(LFLAGS) -o lib/$(LIBRARY) $(LOBJS)
+	$(CC) $(LFLAGS) -o lib/$(LIBRARY_SHARED) $(LOBJS)
 
-# Pattern rule for object files
+# Build static library
+static: $(LOBJS)
+	@mkdir -p lib
+	$(AR) $(ARFLAGS) lib/$(LIBRARY_STATIC) $(LOBJS)
+
+# Build both libraries
+both: shared static
+
+# Pattern rule for object files (position-independent code for both)
 bin/%.o: src/%.c
 	@mkdir -p bin
 	$(CC) -c $< -o $@ $(CFLAGS)
 
+# Run tests
+tests: shared static
+	$(MAKE) -C tests
 
-tests: install
-	make -C tests
-
-define install_rule
-	install -Dm644 $(1) $(DESTDIR)$(INCDIR)/$(notdir $(1))
-
-endef
-
-install: teye
+# Installation
+install: $(BUILD_TYPE)
 	@echo "Installing to $(PREFIX)..."
-	# Install the library
-	install -Dm755 lib/$(LIBRARY) $(DESTDIR)$(LIBDIR)/$(LIBRARY)
+	@mkdir -p $(DESTDIR)$(LIBDIR) $(DESTDIR)$(INCDIR)
 	
-	# Install headers
-	$(foreach header,$(HEADERS),$(call install_rule,$(header)))
+	@if [ -f lib/$(LIBRARY_SHARED) ] && [ "$(BUILD_TYPE)" != "static" ]; then \
+		echo "Installing $(LIBRARY_SHARED)..."; \
+		install -m755 lib/$(LIBRARY_SHARED) $(DESTDIR)$(LIBDIR)/$(LIBRARY_SHARED); \
+	fi
 	
-	@echo "Updating linker cache..."
-	-ldconfig $(LIBDIR)
+	@if [ -f lib/$(LIBRARY_STATIC) ] && [ "$(BUILD_TYPE)" != "shared" ]; then \
+		echo "Installing $(LIBRARY_STATIC)..."; \
+		install -m644 lib/$(LIBRARY_STATIC) $(DESTDIR)$(LIBDIR)/$(LIBRARY_STATIC); \
+	fi
+	
+	@for header in $(HEADERS); do \
+		install -Dm644 $$header $(DESTDIR)$(INCDIR)/$$(basename $$header); \
+	done
+	
+	@if [ -f lib/$(LIBRARY_SHARED) ] && [ "$(BUILD_TYPE)" != "static" ]; then \
+		echo "Updating linker cache..."; \
+		-ldconfig $(DESTDIR)$(LIBDIR) 2>/dev/null || true; \
+	fi
 
+# Uninstallation
+uninstall:
+	@echo "Removing from $(PREFIX)..."
+	rm -f $(DESTDIR)$(LIBDIR)/$(LIBRARY_SHARED)
+	rm -f $(DESTDIR)$(LIBDIR)/$(LIBRARY_STATIC)
+	@for header in $(HEADERS); do \
+		rm -f $(DESTDIR)$(INCDIR)/$$(basename $$header); \
+	done
+	-ldconfig 2>/dev/null || true
+
+# Clean build artifacts
 clean:
-	rm -rf bin lib tests/bin
+	rm -rf bin lib
+	$(MAKE) -C tests clean 2>/dev/null || true

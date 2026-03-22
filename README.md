@@ -4,7 +4,7 @@ I have recently been working on many small projects where I needed to draw bitma
 Here it is. I hope this can be useful to someone else. Feel free to use the code in your own project and if you encounter any issues, either open an issue in the corresponding session or change the code to your heart content and  open a PR so that everyone can benefit.
 
 ## Version
-0.3.0
+0.3.1
 
 ### Changelog from 0.2
 Refactored the API to give more control to the user
@@ -46,11 +46,10 @@ will build the library and install it in /usr/local/.
 To build the tests:
 
 ```bash
-sudo make tests
+make tests
 ```
 
-`sudo` is required as the the commad also install the library.
-
+More about the build system [here](BUILD.md)
 
 ## Using the TEYE API (example)
 Feel free to see the examples in the tests/ sections. They are kept in sync with the library.

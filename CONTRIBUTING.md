@@ -16,7 +16,7 @@ You are free to fork the repository and modify the code to suit your needs. If y
 - **Keep it Simple**: We prioritize minimal, maintainable code over complex optimizations.
 - **One PR per Feature/Fix**: If you are fixing multiple issues, please submit separate pull requests for each. This makes code reviews significantly easier.
 - **Document Your Changes**: Please document your modifications. If you are adding a new feature, update the relevant documentation so it can be reviewed effectively.
-
+ye
 ## Coding Standards and Style
 While these are guidelines, following them helps keep the codebase consistent:
 
@@ -34,6 +34,9 @@ While these are guidelines, following them helps keep the codebase consistent:
 ### Performance
 - **Readability First**: Do not over-obfuscate your code in the name of performance. 
 - **Benchmarks**: If you are submitting a performance-critical optimization, **you must provide a benchmark** proving a significant improvement. Please encapsulate the complex logic as much as possible.
+
+### Build
+Teye's build system is described [here](BUILD.md).
 
 ---
 

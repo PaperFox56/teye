@@ -1,3 +1,12 @@
+/**
+ * bounce.c
+ *
+ * This file is part of the test suite for the TEYE library API.
+ *
+ * This program should create an animation of a white circle bouncing up and
+ * down on a black background.
+ */
+
 #include "timer.h"
 #include <signal.h>
 #include <stdatomic.h>
@@ -17,13 +26,19 @@ static void signal_handler() { running = 0; }
 
 int main() {
 
+  // Handles the interrupt signal from the terminal in orther to break the main
+  // loop.
   signal(SIGINT, signal_handler);
 
+  // The buffer is initialized to zero to prevent undefined behaviour from the
+  // allocation function
   TEYE_Buffer buffer = {0};
 
+  // Initialize the library
   TEYE_init();
+
   if (TEYE_allocate_buffer(&buffer, w, h) != 0) {
-    perror("Couldn't initialize a buffer");
+    perror("Couldn't allocate a buffer");
     TEYE_free();
     exit(1);
   }
@@ -41,6 +56,7 @@ int main() {
     else if (pos_y < 50)
       v = 2;
 
+    // This loop could be optimized but it is not needed
     for (int i = 0; i < h; i++) {
       int x0 = i * w;
       for (int j = 0; j < w; j++) {
@@ -55,9 +71,11 @@ int main() {
     TEYE_blit(buffer, FitWidth, 0, 0);
     TEYE_render_frame();
 
+    // Basic FPS capping
     sleep_ms(1000 / 60);
   }
 
+  // Don't forget to clean behind us
   TEYE_free_buffer(&buffer);
   TEYE_free();
 }

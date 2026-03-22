@@ -24,7 +24,7 @@ extern "C" {
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
 // Drawing modes
-typedef enum { FitWidth, FitHeight, Stretch } ScalingMode;
+typedef enum { FitWidth, FitHeight, Stretch, FitBest } ScalingMode;
 // Intended feature implementation
 typedef enum {
   Normal,
@@ -116,13 +116,20 @@ coordinates.*/
 void TEYE_blit_and_scale_to(TEYE_Buffer dest, const TEYE_Buffer src, int x,
                             int y, float scale_x, float scale_y);
 
-/* Draw a bitmap from the given buffer to the destination.
-The drawing mode is used to determine how the given bitmap is copied onto the
+/** Draw a bitmap from the given buffer to the destination.
+
+@param dest The destination buffer
+@param src The source destination buffer
+@param mode Determine how the given bitmap is copied onto the
 buffer.
 - `FitWidth`: The bitmap is scaled in a way that its width fits the screen.
 - `FitHeight`: The bitmap is scaled in a way that its height fits the screen.
-- `Stretch`: The bitmap is scaled in a way that both its height its width fits
-the screen.
+- `Stretch`: The bitmap is stretched in a way that both its height its width
+fits.
+- `FitBest`: The bitmap is scaled such that it take as much space as possible
+while keeping the aspect ratio. the screen.
+@param x
+@param y The absolute coordinates in pixels in the destination buffer
 */
 void TEYE_blit_custom_scale_to(TEYE_Buffer dest, const TEYE_Buffer src,
                                ScalingMode mode, int x, int y);

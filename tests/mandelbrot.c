@@ -1,10 +1,10 @@
 /**
- * bounce.c
+ * mandelbrot.c
  *
  * This file is part of the test suite for the TEYE library API.
  *
- * This program should create an animation of a white circle bouncing up and
- * down on a black background.
+ * This program should display an animation of the mandelbrot set with a color
+ * gradient indicating how fast a point diverges
  */
 
 #include "timer.h"
@@ -14,18 +14,19 @@
 #include <stdlib.h>
 #include <teye/teye.h>
 
+#define BLACK 232
+#define WHITE 231
+
 #if (TEYE_VERSION_MAJOR > 0) || (TEYE_VERSION_MINOR > 3)
 #error                                                                         \
     "This test was made for Teye 0.3, it is probably deprecated. If the test is still compatible with the current version of the library, please update the condition above."
 #endif
 
-#define BLACK 232
-#define WHITE 231
-
 volatile atomic_int running = 1;
 
+// Our buffer's resolution
 static int w = 300;
-static int h = 200;
+static int h = 300;
 
 static void signal_handler() { running = 0; }
 

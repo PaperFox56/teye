@@ -60,7 +60,6 @@ int main() {
   float scale = units / side;
 
   // origin
-  float o_x = units / 2.0;
   float o_y = units / 2.0 + 1.;
 
   while (running) {

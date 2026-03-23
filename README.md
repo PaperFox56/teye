@@ -5,7 +5,7 @@ Here it is. I hope this can be useful to someone else. Feel free to use the code
 
 <img width="722" height="690" alt="image" src="https://github.com/user-attachments/assets/40613130-d6a7-46ad-bc4f-ef60f870ebf1" />
 
-*A rendering of the mamdelbrot set with Teye (see the corresponding test)*
+*A rendering of the mandelbrot set with Teye (see the corresponding test)*
 
 ![chip8](https://github.com/user-attachments/assets/480d3e84-f15f-4e0a-8993-610d68d74b1c)
 

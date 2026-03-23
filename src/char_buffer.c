@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "char_buffer.h"
+#include <teye/char_buffer.h>
 
 extern void panic(const char *s);
 
@@ -84,6 +84,28 @@ void CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
 
   char_buffer->len += len;
   char_buffer->buf[char_buffer->len] = '\0';
+}
+
+/**
+ * Fast integer to string conversion
+ */
+void CharBuffer_append_int(struct CharBuffer *char_buffer, int n) {
+  if (n == 0) {
+    CharBuffer_append_text(char_buffer, "0", 1);
+    return;
+  }
+
+  char tmp[12]; // Enough for a 32-bit int
+  int i = 10;
+  tmp[11] = '\0';
+
+  while (n > 0 && i >= 0) {
+    tmp[i--] = (n % 10) + '0';
+    n /= 10;
+  }
+
+  // i+1 is the start of our string
+  CharBuffer_append_text(char_buffer, &tmp[i + 1], 10 - i);
 }
 
 void CharBuffer_remove_chars(struct CharBuffer *char_buffer, size_t index,

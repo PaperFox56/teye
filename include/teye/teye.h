@@ -11,12 +11,12 @@ See the LICENCE section for details.
 #ifndef TEYE_H
 #define TEYE_H
 
+#include <stdint.h>
+
 #include <stddef.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
 
 #define TEYE_VERSION_MAJOR 0
 #define TEYE_VERSION_MINOR 3

@@ -62,7 +62,3 @@ More about the build system [here](BUILD.md)
 ## Using the TEYE API
 Feel free to see the examples in the tests/ sections. They are kept in sync with the library.
 
-## Contributing
-
-See [CONTRIBUTING](CONTRIBUTING.md)
-

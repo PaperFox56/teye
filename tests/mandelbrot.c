@@ -25,10 +25,16 @@
 volatile atomic_int running = 1;
 
 // Our buffer's resolution
-static int w = 300;
-static int h = 300;
+static int side = 400;
 
 static void signal_handler() { running = 0; }
+
+/**
+ * Check if the complex number z = x + iy diverges under the mandelbrot set's
+ * relation.
+ * @return -1 if there is no divergence, the number of iterations otherwise.
+ */
+int check_divergence(float c_x, float c_y);
 
 int main() {
 
@@ -43,45 +49,67 @@ int main() {
   // Initialize the library
   TEYE_init();
 
-  if (TEYE_allocate_buffer(&buffer, w, h) != 0) {
+  if (TEYE_allocate_buffer(&buffer, side, side) != 0) {
     perror("Couldn't allocate a buffer");
     TEYE_free();
     exit(1);
   }
 
-  int pos_x = w / 2;
-  int pos_y = h / 2;
+  // How many units are represented by the with of the screen
+  float units = 3.0;
+  float scale = units / side;
 
-  int v = 2;
+  // origin
+  float o_x = units / 2.0;
+  float o_y = units / 2.0 + 1.;
 
   while (running) {
-    pos_y += v;
-
-    if (pos_y > w - 150)
-      v = -2;
-    else if (pos_y < 50)
-      v = 2;
 
     // This loop could be optimized but it is not needed
-    for (int i = 0; i < h; i++) {
-      int x0 = i * w;
-      for (int j = 0; j < w; j++) {
+    for (int i = 0; i < side; i++) {
+      int x0 = i * side;
+      for (int j = 0; j < side; j++) {
 
-        int x = j - pos_x;
-        int y = i - pos_y;
+        float y = i * scale - units / 2.0;
+        float x = j * scale - o_y;
 
-        buffer.buffer[j + x0] = (x * x + y * y < 1000) ? WHITE : BLACK;
+        int diverges = check_divergence(x, y);
+        buffer.buffer[j + x0] = (diverges == -1) ? BLACK : diverges;
       }
     }
 
-    TEYE_blit(buffer, FitWidth, 0, 0);
+    TEYE_blit(buffer, FitBest, 0, 0);
     TEYE_render_frame();
 
+    units *= .99;
+    scale = units / side;
+
+    o_y -= units * .0035;
+
     // Basic FPS capping
-    sleep_ms(1000 / 60);
+    sleep_ms(1000 / 20);
   }
 
   // Don't forget to clean behind us
   TEYE_free_buffer(&buffer);
   TEYE_free();
+}
+
+int check_divergence(float c_x, float c_y) {
+#define MAX_ITERATIONS 20
+  float x = c_x;
+  float y = c_y;
+  for (int i = 0; i < MAX_ITERATIONS; i++) {
+    float new_x = x * x - y * y + c_x;
+    float new_y = 2 * x * y + c_y;
+
+    x = new_x;
+    y = new_y;
+
+    // Calculate the magnitude
+    if (x * x + y * y >= 4.0) {
+      return i;
+    }
+  }
+  return -1;
 }

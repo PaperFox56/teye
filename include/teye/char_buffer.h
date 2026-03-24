@@ -38,6 +38,8 @@ void CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
 void CharBuffer_remove_chars(struct CharBuffer *char_buffer, size_t index,
                              size_t len);
 
+void CharBuffer_append_int(struct CharBuffer *char_buffer, int n);
+
 /**
  @brief Deallocate the internal buffer, then sets the lenght to 0.
 

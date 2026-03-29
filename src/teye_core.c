@@ -41,6 +41,9 @@ See the LICENCE section for details.
  Global variables
  ****************/
 
+// TO DELETE
+extern void panic(const char *s);
+
 // Nothing to see there, just a classic lookup table
 static char colors[][5] = {
     "0m",   "1m",   "2m",   "3m",   "4m",   "5m",   "6m",   "7m",   "8m",

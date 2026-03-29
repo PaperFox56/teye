@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,6 +13,7 @@ typedef struct CharBuffer CharBuffer;
 int CharBuffer_init(struct CharBuffer *char_buffer) {
   void *new = malloc(16 * sizeof(char));
   if (new == NULL) {
+    perror("CharBuffer_init: Couldn't allocate a frame buffer");
     return -1;
   }
 
@@ -31,7 +33,8 @@ int CharBuffer_grow(struct CharBuffer *char_buffer, size_t needed) {
   }
 
   if (char_buffer->capacity < 16) {
-    panic("CharBuffer_grow: WTF?? ");
+    perror("CharBuffer_grow: Can't grow an unitialized buffer");
+    return -1;
   }
 
   // grow by doubling the capacity
@@ -41,8 +44,10 @@ int CharBuffer_grow(struct CharBuffer *char_buffer, size_t needed) {
 
   // the reallocation can fail
   char *new_buf = realloc(char_buffer->buf, new_capacity);
-  if (!new_buf)
+  if (!new_buf) {
+    perror("CharBuffer_grow: The reallocation failed");
     return -1;
+  }
 
   char_buffer->buf = new_buf;
   char_buffer->capacity = new_capacity;
@@ -50,25 +55,31 @@ int CharBuffer_grow(struct CharBuffer *char_buffer, size_t needed) {
   return 0;
 }
 
-void CharBuffer_append_text(CharBuffer *char_buffer, const char *s,
-                            size_t len) {
-  if (CharBuffer_grow(char_buffer, len) == -1)
-    panic("CharBuffer_append_text, increasing buffer capacity");
+int CharBuffer_append_text(CharBuffer *char_buffer, const char *s, size_t len) {
+  if (CharBuffer_grow(char_buffer, len) == -1) {
+    perror(
+        "CharBuffer_append_text: Couldn't allocate more space for the buffer");
+    return -1;
+  }
 
   memcpy(&char_buffer->buf[char_buffer->len], s, len);
 
   char_buffer->len += len;
   char_buffer->buf[char_buffer->len] = '\0';
+
+  return 0;
 }
 
-void CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
-                            size_t index, size_t len) {
+int CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
+                           size_t index, size_t len) {
 
   if (index > char_buffer->len)
-    return;
+    perror("CharBuffer_insert_text: ");
+  return -1;
 
-  if (CharBuffer_grow(char_buffer, len) == -1)
-    panic("CharBuffer_insert_text, increasing buffer capacity");
+  if (CharBuffer_grow(char_buffer, len) == -1) {
+    return -1;
+  }
 
   // first make some room for the new text
   size_t end = index + len;
@@ -84,6 +95,8 @@ void CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
 
   char_buffer->len += len;
   char_buffer->buf[char_buffer->len] = '\0';
+
+  return 0;
 }
 
 /**
@@ -114,8 +127,11 @@ void CharBuffer_remove_chars(struct CharBuffer *char_buffer, size_t index,
    * deleted text */
 
   // some bound checking to be safe
-  if (index >= char_buffer->len)
+  if (index >= char_buffer->len) {
+    perror("CharBuffer_remove_chars: Can't delete characters outside the "
+           "buffer length");
     return;
+  }
 
   if (len > char_buffer->len - index)
     len = char_buffer->len - index;

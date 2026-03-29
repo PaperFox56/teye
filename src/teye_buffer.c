@@ -17,6 +17,9 @@ See the LICENCE section for details.
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a < b ? a : b)
 
+// TO DELETE
+extern void panic(const char *s);
+
 int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height) {
 
   if (width <= 0 || height <= 0) {

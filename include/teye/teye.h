@@ -146,9 +146,6 @@ Deallocate the frame buffers and restore the terminal's state.
  */
 void TEYE_free();
 
-// Prints an error message and quit the program
-void panic(const char *s);
-
 #ifdef __cplusplus
 }
 #endif

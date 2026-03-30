@@ -73,9 +73,10 @@ int CharBuffer_append_text(CharBuffer *char_buffer, const char *s, size_t len) {
 int CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
                            size_t index, size_t len) {
 
-  if (index > char_buffer->len)
+  if (index > char_buffer->len) {
     perror("CharBuffer_insert_text: ");
-  return -1;
+    return -1;
+  }
 
   if (CharBuffer_grow(char_buffer, len) == -1) {
     return -1;

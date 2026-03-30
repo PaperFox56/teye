@@ -1,7 +1,7 @@
 # tests/Makefile
 # Test suite for teye library
 
-TEST_TARGETS := bounce
+TEST_TARGETS := bounce mandelbrot
 BIN_DIR := bin
 
 # Build configuration
@@ -47,6 +47,10 @@ all: $(TEST_TARGETS)
 	@echo "Tests compiled successfully"
 
 bounce: bounce.c timer.c
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $(BIN_DIR)/$@ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+mandelbrot: mandelbrot.c timer.c
 	@mkdir -p $(BIN_DIR)
 	$(CC) $^ -o $(BIN_DIR)/$@ $(CFLAGS) $(LDFLAGS) $(LIBS)
 

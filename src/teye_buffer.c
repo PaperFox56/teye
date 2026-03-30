@@ -161,6 +161,9 @@ void TEYE_blit_custom_scale_to(TEYE_Buffer dest, const TEYE_Buffer src,
     scale_x = w_ratio;
     scale_y = h_ratio;
     break;
+  case FitBest:
+    scale_x = min(h_ratio, w_ratio);
+    scale_y = scale_x;
   }
 
   TEYE_blit_and_scale_to(dest, src, x, y, scale_x, scale_y);

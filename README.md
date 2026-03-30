@@ -12,14 +12,11 @@ Here it is. I hope this can be useful to someone else. Feel free to use the code
 *Visuals of a Chip8 emulator that I am currently working on, with Teye as the rendering engine*
 
 ## Version
-0.3.1
+0.3.2
 
-### Changelog from 0.2
-Refactored the API to give more control to the user
-- The enum `DrawingMode` was renamed to `ScalingMode` for more clarity
-- Add a collection of `blit` functions to give a more fine grained control to the drawing process
-- The enum `SampleMode` was created in prevision for an upcoming feature
-- The function `TEYE_get_framebuffer` was added to the public API. This function allows the user to write directly to the framebuffers or read from them.
+### 0.3.2 changelog
+- The panic function was removed entirely to allow a more robust error handling.
+- More functions have been documented
 
 ### Objectives for 0.4
 - Give more control to the user (restrict rendering region, not clear screen witout user permission)

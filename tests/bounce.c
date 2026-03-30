@@ -1,9 +1,23 @@
+/**
+ * bounce.c
+ *
+ * This file is part of the test suite for the TEYE library API.
+ *
+ * This program should create an animation of a white circle bouncing up and
+ * down on a black background.
+ */
+
 #include "timer.h"
 #include <signal.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <teye/teye.h>
+
+#if (TEYE_VERSION_MAJOR > 0) || (TEYE_VERSION_MINOR > 3)
+#error                                                                         \
+    "This test was made for Teye 0.3, it is probably deprecated. If the test is still compatible with the current version of the library, please update the condition above."
+#endif
 
 #define BLACK 232
 #define WHITE 231
@@ -17,13 +31,22 @@ static void signal_handler() { running = 0; }
 
 int main() {
 
+  // Handles the interrupt signal from the terminal in orther to break the main
+  // loop.
   signal(SIGINT, signal_handler);
 
+  // The buffer is initialized to zero to prevent undefined behaviour from the
+  // allocation function
   TEYE_Buffer buffer = {0};
 
-  TEYE_init();
+  // Initialize the library
+  if (TEYE_init() != 0) {
+    perror("Couldn't initialize Teye");
+    return -1;
+  }
+
   if (TEYE_allocate_buffer(&buffer, w, h) != 0) {
-    perror("Couldn't initialize a buffer");
+    perror("Couldn't allocate a buffer");
     TEYE_free();
     exit(1);
   }
@@ -41,6 +64,7 @@ int main() {
     else if (pos_y < 50)
       v = 2;
 
+    // This loop could be optimized but it is not needed
     for (int i = 0; i < h; i++) {
       int x0 = i * w;
       for (int j = 0; j < w; j++) {
@@ -55,9 +79,11 @@ int main() {
     TEYE_blit(buffer, FitWidth, 0, 0);
     TEYE_render_frame();
 
+    // Basic FPS capping
     sleep_ms(1000 / 60);
   }
 
+  // Don't forget to clean behind us
   TEYE_free_buffer(&buffer);
   TEYE_free();
 }

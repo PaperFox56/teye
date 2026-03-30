@@ -117,29 +117,47 @@ static void reset_frame_buffers() {
   int rows = w.ws_row * 2, cols = w.ws_col;
 
   // Allocate the framebuffers
-  if (TEYE_allocate_buffer(&front_framebuffer, cols, rows) < 0 ||
-      TEYE_allocate_buffer(&back_framebuffer, cols, rows) < 0)
-    panic("teye: Failed to reallocate frame buffers");
+  if (TEYE_allocate_buffer(&back_framebuffer, cols, rows) < 0) {
+    perror("teye.reset_frame_buffers: An error occured, couldn't reallocate "
+           "the back framebuffer");
+    goto clear;
+  }
+  if (TEYE_allocate_buffer(&front_framebuffer, cols, rows) < 0) {
+    perror("teye.reset_frame_buffers: An error occured, couldn't reallocate "
+           "the front framebuffer");
 
+    // The back framebuffer need to be reverted back to the previous state to
+    // ensure compatibility
+    back_framebuffer.width = front_framebuffer.width;
+    back_framebuffer.height = front_framebuffer.height;
+  }
+
+clear:
   TEYE_clear_buffer(front_framebuffer, 0);
   TEYE_clear_buffer(back_framebuffer, 0);
 }
 
-void TEYE_init() {
+int TEYE_init() {
 
   printf("\x1b[?1049h"); // Switch to alternate buffer
 
   hide_cursor();
   setlocale(LC_ALL, "");
 
-  reset_frame_buffers();
+  // Initialize the character buffer
+  if (CharBuffer_init(&char_buffer) < 0) {
+    perror(
+        "teye.TEYE_init: Couldn't initialize a character buffer, fatal error");
+    return -1;
+  }
 
-  if (CharBuffer_init(&char_buffer) < 0)
-    panic("teye: Couldn't initialize a character buffer");
+  reset_frame_buffers();
 
   // Since the buffer is going to grow anyway, we might as well do that now
   // We use an estimate of the number of character expected to render a frame
   CharBuffer_grow(&char_buffer, pixelcount(front_framebuffer) * 10);
+
+  return 0;
 }
 
 void TEYE_set_resize_callback(TEYE_ResizeCallback callback) {

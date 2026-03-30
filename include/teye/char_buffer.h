@@ -24,17 +24,39 @@ int CharBuffer_init(struct CharBuffer *char_buffer);
 // Note this function assumes that the buffer is already initialized
 int CharBuffer_grow(struct CharBuffer *char_buffer, size_t needed);
 
-// Add a byte array at the end of a preallocated CharBuffer
-// This function will panic if the operation fails
-void CharBuffer_append_text(struct CharBuffer *char_buffer, const char *s,
-                            size_t len);
+/** Add a byte array at the end of a preallocated CharBuffer
+ *
+ * @param char_buffer The desination buffer
+ * @param s The string to be copied
+ * @param len The maximum number of bytes that will be copied if no null
+ * terminator is encountered
+ *
+ * @return 0 if the copy was succesful, -1 if an error was encountered.
+ *
+ * @note If an error is encountered during the copy, the buffer is left in a
+ * state that is functionally identical the the initial state.
+ */
+int CharBuffer_append_text(struct CharBuffer *char_buffer, const char *s,
+                           size_t len);
 
-// Insert a byte array in a buffer at the given index
-void CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
-                            size_t index, size_t len);
+/**
+ * Insert a byte array in a buffer at the given index
+ *
+ * @param char_buffer The desination buffer
+ * @param s The string to be copied
+ * @param len The maximum number of bytes that will be copied if no null
+ * terminator is encountered
+ *
+ * @return 0 if the copy was succesful, -1 if an error was encountered.
+ *
+ * @note If an error is encountered during the copy, the buffer is left in a
+ * state that is functionally identical the the initial state.*/
+int CharBuffer_insert_text(struct CharBuffer *char_buffer, const char *s,
+                           size_t index, size_t len);
 
-// Remove the given portion of data from the buffer. This function will not
-// overwrite anything beyond the limits of the buffer.
+/** Remove the given portion of data from the buffer. This function will not
+ * overwrite anything beyond the limits of the buffer.
+ */
 void CharBuffer_remove_chars(struct CharBuffer *char_buffer, size_t index,
                              size_t len);
 
@@ -44,7 +66,7 @@ void CharBuffer_append_int(struct CharBuffer *char_buffer, int n);
  @brief Deallocate the internal buffer, then sets the lenght to 0.
 
  @note that if you used an externally/stack managed buffer to as internal
- buffer, calling this function may cause a double free and a segfault.
+ buffer, calling this function may cause a double free and/or a segfault.
 
  @param char_buffer
  */

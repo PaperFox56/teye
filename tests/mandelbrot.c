@@ -47,7 +47,10 @@ int main() {
   TEYE_Buffer buffer = {0};
 
   // Initialize the library
-  TEYE_init();
+  if (TEYE_init() != 0) {
+    perror("Couldn:t initialize Teye");
+    return -1;
+  }
 
   if (TEYE_allocate_buffer(&buffer, side, side) != 0) {
     perror("Couldn't allocate a buffer");

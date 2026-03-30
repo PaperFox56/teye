@@ -5,8 +5,6 @@
 
 #include <teye/char_buffer.h>
 
-extern void panic(const char *s);
-
 typedef struct FileBuffer FileBuffer;
 typedef struct CharBuffer CharBuffer;
 

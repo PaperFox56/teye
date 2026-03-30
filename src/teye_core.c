@@ -322,11 +322,3 @@ void TEYE_free() {
   CharBuffer_free(&char_buffer);
   printf("\x1b[?1049l"); // Return to primary buffer
 }
-
-void panic(const char *s) {
-
-  TEYE_free();
-
-  perror(s);
-  exit(1);
-}

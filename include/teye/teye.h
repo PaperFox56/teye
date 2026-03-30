@@ -54,8 +54,8 @@ typedef struct {
 
 } TEYE_Buffer;
 
-/* Initialize the terminal and the framebuffers */
-void TEYE_init();
+/** Initialize the terminal and the framebuffers */
+int TEYE_init();
 
 /* NON-IMPLEMENTED!
  * Gives Teye a callback that will be called on window resize events. That
@@ -79,12 +79,12 @@ int TEYE_allocate_buffer(TEYE_Buffer *buffer, int width, int height);
 /** Fills a buffer with the provided number */
 void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
 
-/* Deallocate a buffer. This function performs a check to prevent double free.
+/** Deallocate a buffer. This function performs a check to prevent double free.
  * Calling it twice by mistake should not cause memory corruption.
  */
 void TEYE_free_buffer(TEYE_Buffer *buffer);
 
-/*Returns one of the internal frame buffer. Note that since this is not a
+/**Returns one of the internal frame buffer. Note that since this is not a
  * pointer, this buffer WILL become invalid after every frame redraw (or if the
  * framebuffers are manually updated, this is feature that will probably be
  * implemented for the 0.4.0 version).
@@ -102,7 +102,7 @@ This is a shortcut for
 */
 void TEYE_blit(const TEYE_Buffer src, ScalingMode mode, int x, int y);
 
-/*
+/**
 Copy a bitmap from the source buffer to the destination without applying any
 scaling. This is the same as using `TEYE_blit_and_scale_to` with 1 for the
 scaling arguments, except it's faster since no expensive calculation is done and
@@ -110,7 +110,7 @@ the memory can be copied using memcpy.
  */
 void TEYE_blit_copy_to(TEYE_Buffer dest, const TEYE_Buffer src, int x, int y);
 
-/*Draw a bitmap from the source buffer to the destination.
+/**Draw a bitmap from the source buffer to the destination.
 The bitmap is converted to a scaled version and then placed at the right
 coordinates.*/
 void TEYE_blit_and_scale_to(TEYE_Buffer dest, const TEYE_Buffer src, int x,
@@ -134,14 +134,14 @@ while keeping the aspect ratio. the screen.
 void TEYE_blit_custom_scale_to(TEYE_Buffer dest, const TEYE_Buffer src,
                                ScalingMode mode, int x, int y);
 
-/*
+/**
  Renders the internal buffer to the screen.
  Note that the screen resize interrupt (SINWINCH) is only handled at the end of
  the render. That means that the rendering buffer is still valid
 */
 void TEYE_render_frame();
 
-/*
+/**
 Deallocate the frame buffers and restore the terminal's state.
  */
 void TEYE_free();

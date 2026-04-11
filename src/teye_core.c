@@ -41,7 +41,9 @@ See the LICENCE section for details.
  Global variables
  ****************/
 
-// Nothing to see there, just a classic lookup table
+/** Nothing to see there, just a classic lookup table
+ @note: This should be moved elsewhere
+ */
 static char colors[][5] = {
     "0m",   "1m",   "2m",   "3m",   "4m",   "5m",   "6m",   "7m",   "8m",
     "9m",   "10m",  "11m",  "12m",  "13m",  "14m",  "15m",  "16m",  "17m",
@@ -85,6 +87,9 @@ static TEYE_Buffer back_framebuffer;
 static struct CharBuffer char_buffer;
 
 static TEYE_ResizeCallback resize_callback = NULL;
+
+/** This flag controls whether Teye should listen for the SIGWINCH signal */
+static int handle_terminal_resize = 0;
 
 /****************
  Functions
@@ -137,7 +142,11 @@ clear:
   TEYE_clear_buffer(back_framebuffer, 0);
 }
 
-int TEYE_init() {
+int TEYE_init(int flags) {
+
+  if ((flags & HANDLE_RESIZE) != 0) {
+    handle_terminal_resize = 1;
+  }
 
   printf("\x1b[?1049h"); // Switch to alternate buffer
 
@@ -183,7 +192,9 @@ void TEYE_blit(TEYE_Buffer src, ScalingMode mode, int x, int y) {
 
 void TEYE_render_frame() {
 
-  signal(SIGWINCH, signalHandler);
+  if (handle_terminal_resize) {
+    signal(SIGWINCH, signalHandler);
+  }
 
   // if (size_changed) {
   //   // the back buffer is now misleading, clean it
@@ -280,20 +291,21 @@ void TEYE_render_frame() {
     }
   } while (1);
 
-  if (screen_resized == 1) {
+  if (screen_resized != 0 && handle_terminal_resize != 0) {
 
     // The screen was resized, we need to reallocate the framebuffers
     reset_frame_buffers();
     screen_resized = 0;
 
-    // TODO: take into account the return value of the function
     if (resize_callback != NULL) {
       int code =
           resize_callback(front_framebuffer.width, front_framebuffer.height);
-    }
 
-    move_cursor_top_left();
-    clear_screen();
+      if (code == 0) {
+        move_cursor_top_left();
+        clear_screen();
+      }
+    }
   }
 
   write(STDOUT_FILENO, char_buffer.buf, char_buffer.len);

@@ -47,7 +47,7 @@ int main() {
   TEYE_Buffer buffer = {0};
 
   // Initialize the library
-  if (TEYE_init() != 0) {
+  if (TEYE_init(HANDLE_RESIZE) != 0) {
     perror("Couldn:t initialize Teye");
     return -1;
   }

@@ -11,7 +11,6 @@ See the LICENCE section for details.
 #include <locale.h>
 #include <signal.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h> // for terminal size
 
@@ -36,6 +35,13 @@ See the LICENCE section for details.
 #define get_color_from_number(x) colors[x]
 
 #define clamp(x, min, max) (x < min ? min : (x > max ? max : x))
+
+typedef struct {
+  int x;
+  int y;
+  int w;
+  int h;
+} Viewport;
 
 /****************
  Global variables
@@ -76,15 +82,17 @@ static char colors[][5] = {
 // tracks whether the terminal size changed since the last frame
 static volatile sig_atomic_t screen_resized = 0;
 
-static TEYE_Buffer front_framebuffer;
+static TEYE_Buffer front_framebuffer = {0};
 
 // This buffer is swaped with the main one after each frame.
-static TEYE_Buffer back_framebuffer;
+static TEYE_Buffer back_framebuffer = {0};
 
 // Stores the frame's bytes before sending to the terminal
-static struct CharBuffer char_buffer;
+static struct CharBuffer char_buffer = {0};
 
 static TEYE_ResizeCallback resize_callback = NULL;
+
+static Viewport rendering_viewport = {0};
 
 /****************
  Functions
@@ -108,21 +116,24 @@ static void CharBuffer_append_cursor_move(struct CharBuffer *cb, int row,
   CharBuffer_append_text(cb, "H", 1);
 }
 
+/**
+ * REVIEW ME
+ *
+ * Update the framebuffers' size based on the viewport.
+ */
 static void reset_frame_buffers() {
 
-  // get the screen size
-  struct winsize w;
-  ioctl(0, TIOCGWINSZ, &w);
-
-  int rows = w.ws_row * 2, cols = w.ws_col;
-
-  // Allocate the framebuffers
-  if (TEYE_allocate_buffer(&back_framebuffer, cols, rows) < 0) {
+  // (Re)allocate the framebuffers
+  if (TEYE_allocate_buffer(&back_framebuffer, rendering_viewport.w,
+                           rendering_viewport.h * 2) < 0) {
     perror("teye.reset_frame_buffers: An error occured, couldn't reallocate "
            "the back framebuffer");
     goto clear;
   }
-  if (TEYE_allocate_buffer(&front_framebuffer, cols, rows) < 0) {
+  // REVIEW ME
+  // I feel like this error should be handled better.
+  if (TEYE_allocate_buffer(&front_framebuffer, rendering_viewport.w,
+                           rendering_viewport.h * 2) < 0) {
     perror("teye.reset_frame_buffers: An error occured, couldn't reallocate "
            "the front framebuffer");
 
@@ -151,11 +162,15 @@ int TEYE_init() {
     return -1;
   }
 
-  reset_frame_buffers();
+  // We want the viewport to take up all of the screen by default
+#define SUPER_DUPER_LARGE_NUMBER 10000
+  TEYE_clip_rendering_viewport(10, 10, SUPER_DUPER_LARGE_NUMBER,
+                               SUPER_DUPER_LARGE_NUMBER);
+#undef SUPER_DUPER_LARGE_NUMBER
 
   // Since the buffer is going to grow anyway, we might as well do that now
   // We use an estimate of the number of character expected to render a frame
-  CharBuffer_grow(&char_buffer, pixelcount(front_framebuffer) * 10);
+  CharBuffer_grow(&char_buffer, pixelcount(front_framebuffer) * 5);
 
   return 0;
 }
@@ -185,45 +200,40 @@ void TEYE_render_frame() {
 
   signal(SIGWINCH, signalHandler);
 
-  // if (size_changed) {
-  //   // the back buffer is now misleading, clean it
-  //   TEYE_clear_buffer(buffer, 0)
-  // }
-
   fflush(stdout);
 
   // Loop over the frame buffer, two rows at a time (since we render 2 rows
   // per character)
 
   // cursor position on the screen
-  int i = 0;
-  int j = -1;
+  int i = rendering_viewport.y;
+  int j = rendering_viewport.x;
 
   // pixel position buffer
   int x = 0, y = 0;
   // track the starting index of each line
   int x0 = 0, x1 = front_framebuffer.width;
 
-  // We gotta save so bytes by not sending the same color code twice
+  // We gotta save some bytes by not sending the same color code twice
   int prev_foreground = -1;
   int prev_background = -1;
 
   int to_ignore = 0;
 
   // Go the the start of the line
-  CharBuffer_append_cursor_move(&char_buffer, 1, 1);
+  CharBuffer_append_cursor_move(&char_buffer, i + 1, j + 1);
 
   do {
 
-    if (++j >= front_framebuffer.width) {
-      j = 0;
+    if (++j >= rendering_viewport.w) {
+      j = rendering_viewport.x;
       i++;
-      if (i >= front_framebuffer.height / 2)
+      if (i >= (rendering_viewport.h + 1) / 2)
         break;
 
       y = i * 2;
-      x0 = y * front_framebuffer.width;
-      x1 = x0 + front_framebuffer.width;
+      x0 = y * rendering_viewport.w;
+      x1 = x0 + rendering_viewport.w;
 
       prev_foreground = -1;
       prev_background = -1;
@@ -282,14 +292,21 @@ void TEYE_render_frame() {
 
   if (screen_resized == 1) {
 
-    // The screen was resized, we need to reallocate the framebuffers
-    reset_frame_buffers();
     screen_resized = 0;
+    int code = 0;
 
-    // TODO: take into account the return value of the function
     if (resize_callback != NULL) {
-      int code =
-          resize_callback(front_framebuffer.width, front_framebuffer.height);
+      code = resize_callback(front_framebuffer.width, front_framebuffer.height);
+    }
+
+    // If user doesn't handle the resize event, we want to update the viewport
+    // to take up all of the screen
+    if ((code & RESIZE_CALLBACK_FLAG_MANUAL_RESIZE) == 0) {
+      // We want the viewport to take up all of the screen by default
+#define SUPER_DUPER_LARGE_NUMBER 10000
+      TEYE_clip_rendering_viewport(0, 0, SUPER_DUPER_LARGE_NUMBER,
+                                   SUPER_DUPER_LARGE_NUMBER);
+#undef SUPER_DUPER_LARGE_NUMBER
     }
 
     move_cursor_top_left();
@@ -310,6 +327,23 @@ void TEYE_render_frame() {
   // Cleans the character buffer to make it usable for the next iteration
   char_buffer.len = 0;
   char_buffer.buf[0] = '\0';
+}
+
+int TEYE_clip_rendering_viewport(int x, int y, int w, int h) {
+  // get the screen size
+  struct winsize window;
+  ioctl(0, TIOCGWINSZ, &window);
+
+  int rows = window.ws_row * 2, cols = window.ws_col;
+
+  rendering_viewport.x = clamp(x, 0, cols - 1);
+  rendering_viewport.y = clamp(y, 0, rows - 1);
+  rendering_viewport.w = clamp(w, 0, cols - x);
+  rendering_viewport.h = clamp(h, 0, rows - y);
+
+  reset_frame_buffers();
+
+  return 0;
 }
 
 /** Restore the terminal and clean the memory*/

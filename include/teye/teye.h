@@ -21,6 +21,11 @@ extern "C" {
 #define TEYE_VERSION_MAJOR 0
 #define TEYE_VERSION_MINOR 3
 
+/*** Flags for the return code of the resize callback ***/
+// Tells Teye that user will manually handle the resize event and reshape the
+// viewports.
+#define RESIZE_CALLBACK_FLAG_MANUAL_RESIZE 1
+
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
 // Drawing modes
@@ -133,6 +138,19 @@ while keeping the aspect ratio. the screen.
 */
 void TEYE_blit_custom_scale_to(TEYE_Buffer dest, const TEYE_Buffer src,
                                ScalingMode mode, int x, int y);
+
+/**
+ * This function allows to limit the drawing to a specific region of the
+ * terminal.
+ *
+ * @note If the given region ends up outside of the terminal, it will be clipped
+ * to stay inbounds.
+ *
+ * @note This function will erase the whole terminal's contents.
+ *
+ * @return 0 if everything went well, -1 if an issue occured.
+ */
+int TEYE_clip_rendering_viewport(int x, int y, int w, int h);
 
 /**
  Renders the internal buffer to the screen.

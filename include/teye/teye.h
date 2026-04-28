@@ -23,6 +23,9 @@ extern "C" {
 
 #define pixelcount(buffer) (buffer.width * buffer.height)
 
+// These can be passed as flags to the library at initialization
+#define HANDLE_RESIZE 1
+
 // Drawing modes
 typedef enum { FitWidth, FitHeight, Stretch, FitBest } ScalingMode;
 // Intended feature implementation
@@ -55,15 +58,16 @@ typedef struct {
 } TEYE_Buffer;
 
 /** Initialize the terminal and the framebuffers */
-int TEYE_init();
+int TEYE_init(int flags);
 
-/* NON-IMPLEMENTED!
+/*
  * Gives Teye a callback that will be called on window resize events. That
  * function has to be of the type `TEYE_ResizeCallback`.
- * It should take as arguments the new size of the rendering window and return a
- * flag number dictating how the event will be handled. Each bit of the flag
- * control one particular behaviour. Please refer to the macros for more
- * information.*/
+ * information.
+ *
+ * @note The callback should return 0 if the terminal should be cleared and -1
+ * otherwise.
+ */
 void TEYE_set_resize_callback(TEYE_ResizeCallback callback);
 
 /*

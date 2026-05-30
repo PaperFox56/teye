@@ -164,7 +164,7 @@ int TEYE_init() {
 
   // We want the viewport to take up all of the screen by default
 #define SUPER_DUPER_LARGE_NUMBER 10000
-  TEYE_clip_rendering_viewport(10, 10, SUPER_DUPER_LARGE_NUMBER,
+  TEYE_clip_rendering_viewport(0, 0, SUPER_DUPER_LARGE_NUMBER,
                                SUPER_DUPER_LARGE_NUMBER);
 #undef SUPER_DUPER_LARGE_NUMBER
 

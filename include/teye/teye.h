@@ -89,7 +89,7 @@ void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
  */
 void TEYE_free_buffer(TEYE_Buffer *buffer);
 
-/**Returns one of the internal frame buffer. Note that since this is not a
+/**@return one of the internal frame buffer. Note that since this is not a
  * pointer, this buffer WILL become invalid after every frame redraw (or if the
  * framebuffers are manually updated, this is feature that will probably be
  * implemented for the 0.4.0 version).

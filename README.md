@@ -12,14 +12,14 @@ Here it is. I hope this can be useful to someone else. Feel free to use the code
 *Visuals of a Chip8 emulator that I am currently working on, with Teye as the rendering engine*
 
 ## Version
-0.3.2
+0.4.0
 
-### 0.3.2 changelog
-- The panic function was removed entirely to allow a more robust error handling.
-- More functions have been documented
+### 0.4 changelog
+- A flag can be set to prevent TEYE from resizing the viewport every frame.
+- A "viewport" feature now allows to limit the drawing surface to a set part of the terminal.
 
-### Objectives for 0.4
-- Give more control to the user (restrict rendering region, not clear screen witout user permission)
+### Objectives for 0.5
+There no yet a clear vision for the next iteration. Fixes and features might be added to the library as 0.4.x versions. Any API-breaking change will push the version 0.5.
 
 ## Contributing to the project
 Please read [here](CONTRIBUTING.md) for information on how to help the project.
@@ -55,7 +55,7 @@ make tests
 ```
 
 More about the build system [here](BUILD.md)
-
+    
 ## Using the TEYE API
 Feel free to see the examples in the tests/ sections. They are kept in sync with the library.
 

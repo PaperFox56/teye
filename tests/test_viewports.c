@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <teye/teye.h>
 
-#if (TEYE_VERSION_MAJOR > 0) || (TEYE_VERSION_MINOR > 3)
+#if (TEYE_VERSION_MAJOR > 0) || (TEYE_VERSION_MINOR > 4)
 #error                                                                         \
-    "This test was made for Teye 0.3, it is probably deprecated. If the test is still compatible with the current version of the library, please update the condition above."
+    "This test was made for Teye 0.4, it is probably deprecated. If the test is still compatible with the current version of the library, please update the condition above."
 #endif
 
 #define BLACK 232

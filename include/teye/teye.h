@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 #define TEYE_VERSION_MAJOR 0
-#define TEYE_VERSION_MINOR 3
+#define TEYE_VERSION_MINOR 4
 
 /*** Flags for the return code of the resize callback ***/
 // Tells Teye that user will manually handle the resize event and reshape the

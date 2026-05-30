@@ -3,8 +3,7 @@
  *
  * This file is part of the test suite for the TEYE library API.
  *
- * This program should create an animation of a white circle bouncing up and
- * down on a black background.
+ * This test is used to test the viewport management of Teye.
  */
 
 #include "timer.h"
@@ -24,8 +23,8 @@
 
 volatile atomic_int running = 1;
 
-static int w = 300;
-static int h = 200;
+static int w = 20;
+static int h = 20;
 
 static void signal_handler() { running = 0; }
 
@@ -40,7 +39,7 @@ int main() {
   TEYE_Buffer buffer = {0};
 
   // Initialize the library
-  if (TEYE_init(HANDLE_RESIZE) != 0) {
+  if (TEYE_init(0) != 0) {
     perror("Couldn't initialize Teye");
     return -1;
   }
@@ -51,40 +50,49 @@ int main() {
     exit(1);
   }
 
-  int pos_x = w / 2;
-  int pos_y = h / 2;
+  /*Since TEYE was just initialised, the current size of the frame_buffer is the
+   * same as the dimensions of the terminal*/
+  int term_w = TEYE_get_framebuffer(0).width;
+  int term_h = TEYE_get_framebuffer(0).height;
 
-  int v = 2;
+  int pos_x = (term_w - w) / 2;
+  int pos_y = 0;
+
+  /*Here we precompute a circle "sprite" that will be blit to the screen
+   * every frame*/
+
+  for (int i = 0; i < h; i++) {
+    int x0 = i * w;
+    for (int j = 0; j < w; j++) {
+
+      int x = j - w / 2;
+      int y = i - h / 2;
+
+      buffer.buffer[j + x0] = (x * x + y * y < 100) ? WHITE : BLACK;
+    }
+  }
+
+  float v = 1;
 
   while (running) {
     pos_y += v;
 
-    if (pos_y > w - 150)
-      v = -2;
-    else if (pos_y < 50)
-      v = 2;
+    // Update the vertical velocity
+    if (pos_y >= term_h - h)
+      v = -1;
+    else if (pos_y <= 0)
+      v = 1;
 
-    /*
-     * Note that this code is subefficient. A better method would be to have a
-     * circle "sprite" and simply blit it at the right offset in the screen
-     * buffer
-     * */
-    for (int i = 0; i < h; i++) {
-      int x0 = i * w;
-      for (int j = 0; j < w; j++) {
+    // Clear the screen
+    printf("\x1b[H");
+    printf("\x1b[J");
+    TEYE_clip_rendering_viewport(pos_x, pos_y, w, h);
 
-        int x = j - pos_x;
-        int y = i - pos_y;
-
-        buffer.buffer[j + x0] = (x * x + y * y < 1000) ? WHITE : BLACK;
-      }
-    }
-
-    TEYE_blit(buffer, FitWidth, 0, 0);
+    TEYE_blit(buffer, FitBest, 0, 0);
     TEYE_render_frame();
 
     // Basic FPS capping
-    sleep_ms(1000 / 60);
+    sleep_ms(1000 / 30);
   }
 
   // Don't forget to clean behind us

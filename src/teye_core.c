@@ -129,7 +129,7 @@ static void reset_frame_buffers() {
 
   // (Re)allocate the framebuffers
   if (TEYE_allocate_buffer(&back_framebuffer, rendering_viewport.w,
-                           rendering_viewport.h * 2) < 0) {
+                           rendering_viewport.h) < 0) {
     perror("teye.reset_frame_buffers: An error occured, couldn't reallocate "
            "the back framebuffer");
     goto clear;
@@ -137,7 +137,7 @@ static void reset_frame_buffers() {
   // REVIEW ME
   // I feel like this error should be handled better.
   if (TEYE_allocate_buffer(&front_framebuffer, rendering_viewport.w,
-                           rendering_viewport.h * 2) < 0) {
+                           rendering_viewport.h) < 0) {
     perror("teye.reset_frame_buffers: An error occured, couldn't reallocate "
            "the front framebuffer");
 
@@ -153,6 +153,7 @@ clear:
 }
 
 int TEYE_init(int flags) {
+  signal(SIGWINCH, signalHandler);
 
   if ((flags & HANDLE_RESIZE) != 0) {
     handle_terminal_resize = 1;
@@ -206,17 +207,13 @@ void TEYE_blit(TEYE_Buffer src, ScalingMode mode, int x, int y) {
 
 void TEYE_render_frame() {
 
-  if (handle_terminal_resize) {
-    signal(SIGWINCH, signalHandler);
-  }
-
   fflush(stdout);
 
   // Loop over the frame buffer, two rows at a time (since we render 2 rows
   // per character)
 
   // cursor position on the screen
-  int i = rendering_viewport.y;
+  int i = rendering_viewport.y / 2;
   int j = rendering_viewport.x;
 
   // pixel position buffer
@@ -235,13 +232,13 @@ void TEYE_render_frame() {
 
   do {
 
-    if (++j >= rendering_viewport.w) {
+    if (++j >= (rendering_viewport.w + rendering_viewport.x)) {
       j = rendering_viewport.x;
-      i++;
-      if (i >= (rendering_viewport.h + 1) / 2)
+      x = 0;
+      if (++i >= (rendering_viewport.h + rendering_viewport.y) / 2)
         break;
 
-      y = i * 2;
+      y += 2;
       x0 = y * rendering_viewport.w;
       x1 = x0 + rendering_viewport.w;
 
@@ -255,7 +252,7 @@ void TEYE_render_frame() {
       CharBuffer_append_cursor_move(&char_buffer, i + 1, j + 1);
     }
 
-    x = j;
+    x++;
 
     // Combine two rows to form one character
     uint8_t upper_half = front_framebuffer.buffer[x0 + x];
@@ -319,10 +316,9 @@ void TEYE_render_frame() {
 #undef SUPER_DUPER_LARGE_NUMBER
     }
 
-      if (code == 0) {
-        move_cursor_top_left();
-        clear_screen();
-      }
+    if (code == 0) {
+      move_cursor_top_left();
+      clear_screen();
     }
   }
 

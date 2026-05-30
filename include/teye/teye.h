@@ -21,7 +21,15 @@ extern "C" {
 #define TEYE_VERSION_MAJOR 0
 #define TEYE_VERSION_MINOR 3
 
+/*** Flags for the return code of the resize callback ***/
+// Tells Teye that user will manually handle the resize event and reshape the
+// viewports.
+#define RESIZE_CALLBACK_FLAG_MANUAL_RESIZE 1
+
 #define pixelcount(buffer) (buffer.width * buffer.height)
+
+// These can be passed as flags to the library at initialization
+#define HANDLE_RESIZE 1
 
 // Drawing modes
 typedef enum { FitWidth, FitHeight, Stretch, FitBest } ScalingMode;
@@ -55,15 +63,16 @@ typedef struct {
 } TEYE_Buffer;
 
 /** Initialize the terminal and the framebuffers */
-int TEYE_init();
+int TEYE_init(int flags);
 
-/* NON-IMPLEMENTED!
+/*
  * Gives Teye a callback that will be called on window resize events. That
  * function has to be of the type `TEYE_ResizeCallback`.
- * It should take as arguments the new size of the rendering window and return a
- * flag number dictating how the event will be handled. Each bit of the flag
- * control one particular behaviour. Please refer to the macros for more
- * information.*/
+ * information.
+ *
+ * @note The callback should return 0 if the terminal should be cleared and -1
+ * otherwise.
+ */
 void TEYE_set_resize_callback(TEYE_ResizeCallback callback);
 
 /*
@@ -84,7 +93,7 @@ void TEYE_clear_buffer(TEYE_Buffer buffer, uint8_t color);
  */
 void TEYE_free_buffer(TEYE_Buffer *buffer);
 
-/**Returns one of the internal frame buffer. Note that since this is not a
+/**@return one of the internal frame buffer. Note that since this is not a
  * pointer, this buffer WILL become invalid after every frame redraw (or if the
  * framebuffers are manually updated, this is feature that will probably be
  * implemented for the 0.4.0 version).
@@ -133,6 +142,19 @@ while keeping the aspect ratio. the screen.
 */
 void TEYE_blit_custom_scale_to(TEYE_Buffer dest, const TEYE_Buffer src,
                                ScalingMode mode, int x, int y);
+
+/**
+ * This function allows to limit the drawing to a specific region of the
+ * terminal.
+ *
+ * @note If the given region ends up outside of the terminal, it will be clipped
+ * to stay inbounds.
+ *
+ * @note This function will erase the whole terminal's contents.
+ *
+ * @return 0 if everything went well, -1 if an issue occured.
+ */
+int TEYE_clip_rendering_viewport(int x, int y, int w, int h);
 
 /**
  Renders the internal buffer to the screen.

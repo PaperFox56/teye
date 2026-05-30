@@ -1,7 +1,7 @@
 # tests/Makefile
 # Test suite for teye library
 
-TEST_TARGETS := bounce mandelbrot
+TEST_TARGETS := bounce mandelbrot test_viewports
 BIN_DIR := bin
 
 # Build configuration
@@ -51,6 +51,10 @@ bounce: bounce.c timer.c
 	$(CC) $^ -o $(BIN_DIR)/$@ $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 mandelbrot: mandelbrot.c timer.c
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $(BIN_DIR)/$@ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+test_viewports: test_viewports.c timer.c
 	@mkdir -p $(BIN_DIR)
 	$(CC) $^ -o $(BIN_DIR)/$@ $(CFLAGS) $(LDFLAGS) $(LIBS)
 

@@ -18,6 +18,9 @@ Here it is. I hope this can be useful to someone else. Feel free to use the code
 - A flag can be set to prevent TEYE from resizing the viewport every frame.
 - A "viewport" feature now allows to limit the drawing surface to a set part of the terminal.
 
+### 0.4.1 Patch
+- The rendering artifact in the mandlebrot test has been fixed
+
 ### Objectives for 0.5
 There no yet a clear vision for the next iteration. Fixes and features might be added to the library as 0.4.x versions. Any API-breaking change will push the version 0.5.
 

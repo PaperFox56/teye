@@ -92,7 +92,7 @@ int main() {
     TEYE_render_frame();
 
     // Basic FPS capping
-    sleep_ms(1000 / 30);
+    sleep_ms(1000 / 60);
   }
 
   // Don't forget to clean behind us

@@ -154,7 +154,6 @@ clear:
 
 int TEYE_init(int flags) {
   signal(SIGWINCH, signalHandler);
-
   if ((flags & HANDLE_RESIZE) != 0) {
     handle_terminal_resize = 1;
   }
@@ -232,7 +231,7 @@ void TEYE_render_frame() {
 
   do {
 
-    if (++j >= (rendering_viewport.w + rendering_viewport.x)) {
+    if (j >= (rendering_viewport.w + rendering_viewport.x)) {
       j = rendering_viewport.x;
       x = 0;
       if (++i >= (rendering_viewport.h + rendering_viewport.y) / 2)
@@ -251,14 +250,14 @@ void TEYE_render_frame() {
       // Go the the start of the line
       CharBuffer_append_cursor_move(&char_buffer, i + 1, j + 1);
     }
-
-    x++;
+    j++;
 
     // Combine two rows to form one character
     uint8_t upper_half = front_framebuffer.buffer[x0 + x];
     uint8_t lower_half = front_framebuffer.buffer[x1 + x];
     uint8_t cahed_upper_half = back_framebuffer.buffer[x0 + x];
     uint8_t cached_lower_half = back_framebuffer.buffer[x1 + x];
+    x++;
 
     // Check if this pixel is different from the cache
     if (cahed_upper_half == upper_half && cached_lower_half == lower_half) {
